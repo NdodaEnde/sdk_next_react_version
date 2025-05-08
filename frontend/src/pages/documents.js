@@ -1,0 +1,809 @@
+import React, { useState, useEffect } from 'react';
+import MainLayout from '../components/MainLayout';
+import FileUploader from '../components/FileUploader';
+import DocumentViewer from '../components/DocumentViewer';
+import ChatInterface from '../components/ChatInterface';
+import APIResponseViewer from '../components/APIResponseViewer';
+
+export default function Documents() {
+  // Basic state
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [processedData, setProcessedData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [error, setError] = useState(null);
+  const [showUploader, setShowUploader] = useState(true);
+  
+  // Enhanced UI state
+  const [activeTab, setActiveTab] = useState('documents'); // 'documents', 'uploads', 'security'
+  const [chatApiTab, setChatApiTab] = useState('chat'); // 'chat' or 'api'
+  const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(6);
+
+  // Filter documents by categories (mock data)
+  const documentCategories = [
+    { id: 'all', name: 'All Documents' },
+    { id: 'certificates', name: 'Medical Certificates' },
+    { id: 'id_docs', name: 'ID Documents' },
+    { id: 'lab_results', name: 'Lab Results' },
+    { id: 'reports', name: 'Medical Reports' },
+  ];
+
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  // Mock document list with review status
+  const documentList = [
+    { id: 1, name: 'John_Doe_Medical_Certificate.pdf', category: 'certificates', uploadDate: '2025-05-01', status: 'processed', patient: 'John Doe', reviewStatus: 'reviewed' },
+    { id: 2, name: 'Jane_Smith_ID.pdf', category: 'id_docs', uploadDate: '2025-05-03', status: 'processed', patient: 'Jane Smith', reviewStatus: 'not-reviewed' },
+    { id: 3, name: 'Blood_Work_Results_May.pdf', category: 'lab_results', uploadDate: '2025-05-05', status: 'processing', patient: 'Robert Brown', reviewStatus: 'not-reviewed' },
+    { id: 4, name: 'Annual_Checkup_Report.pdf', category: 'reports', uploadDate: '2025-05-07', status: 'processed', patient: 'Alice Johnson', reviewStatus: 'needs-correction' },
+    { id: 5, name: 'Fit_For_Work_Certificate.pdf', category: 'certificates', uploadDate: '2025-05-10', status: 'processed', patient: 'Michael Wilson', reviewStatus: 'reviewed' },
+    { id: 6, name: 'COVID_Test_Results.pdf', category: 'lab_results', uploadDate: '2025-05-12', status: 'processed', patient: 'Sarah Davis', reviewStatus: 'not-reviewed' },
+    { id: 7, name: 'Pre-Employment_Screening.pdf', category: 'reports', uploadDate: '2025-05-14', status: 'processed', patient: 'James Wilson', reviewStatus: 'not-reviewed' },
+    { id: 8, name: 'Vaccination_Record.pdf', category: 'certificates', uploadDate: '2025-05-16', status: 'processed', patient: 'Emily Johnson', reviewStatus: 'reviewed' },
+  ];
+
+  // Get unique document types
+  const uniqueDocumentTypes = [...new Set(documentList.map(doc => doc.category))];
+
+  // Function to handle file upload completion from FileUploader component
+  const handleFileUploadComplete = (files, data) => {
+    setUploadedFiles(files);
+    setProcessedData(data);
+    setShowUploader(false);
+    
+    // Initialize chat with a welcome message
+    setChatHistory([{
+      role: 'assistant',
+      content: `${files.length} document${files.length !== 1 ? 's' : ''} processed successfully! You can now ask questions about the content.`
+    }]);
+  };
+
+  // Handle chat messages
+  const handleChatMessage = async (message) => {
+    if (!processedData) return;
+    
+    // Add user message to chat
+    const newChatHistory = [...chatHistory, { role: 'user', content: message }];
+    setChatHistory(newChatHistory);
+    
+    // Add loading message
+    setChatHistory([...newChatHistory, { role: 'assistant', content: '...', loading: true }]);
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2 * 60 * 1000); // 2 minute timeout for chat
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message,
+          evidence: processedData.evidence || {}
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get answer');
+      }
+      
+      const data = await response.json();
+      
+      // Update chat history (replace loading message with actual response)
+      setChatHistory([
+        ...newChatHistory, 
+        { role: 'assistant', content: data.answer }
+      ]);
+      
+      // Update highlighted evidence if available
+      if (data.best_chunks && data.best_chunks.length > 0) {
+        setProcessedData(prev => ({
+          ...prev,
+          highlightedEvidence: data.best_chunks
+        }));
+      }
+      
+    } catch (error) {
+      console.error('Error with chat:', error);
+      // Replace loading message with error
+      let errorMessage = error.message;
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'The request timed out. Your question may be too complex for the current document set.';
+      }
+      
+      setChatHistory([
+        ...newChatHistory,
+        { role: 'assistant', content: 'Sorry, I encountered an error: ' + errorMessage }
+      ]);
+    }
+  };
+
+  // Function to update document review status
+  const updateDocumentReviewStatus = (documentId, reviewStatus) => {
+    // In a real app, this would make an API call
+    // For now, we'll just simulate it by showing a notification
+    console.log(`Document ${documentId} marked as ${reviewStatus}`);
+    // We would then refetch the document list
+  };
+
+  // Apply all filters to documents
+  const filteredDocuments = documentList
+    .filter(doc => {
+      // Category filter
+      if (activeCategory !== 'all' && doc.category !== activeCategory) return false;
+      
+      // Status filter
+      if (statusFilter !== 'all' && doc.status !== statusFilter) return false;
+      
+      // Document type filter
+      if (documentTypeFilter !== 'all' && doc.category !== documentTypeFilter) return false;
+      
+      // Search term
+      if (searchTerm && !doc.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      
+      return true;
+    });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
+  const paginatedDocuments = filteredDocuments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Review status counts
+  const notReviewedCount = filteredDocuments.filter(doc => 
+    doc.reviewStatus === 'not-reviewed'
+  ).length;
+  
+  const reviewedCount = filteredDocuments.filter(doc => 
+    doc.reviewStatus === 'reviewed'
+  ).length;
+  
+  const needsCorrectionCount = filteredDocuments.filter(doc => 
+    doc.reviewStatus === 'needs-correction'
+  ).length;
+
+  // Function to get review status badge
+  const getReviewStatusBadge = (reviewStatus) => {
+    if (reviewStatus === 'not-reviewed') {
+      return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">Not Reviewed</span>;
+    } else if (reviewStatus === 'reviewed') {
+      return <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Reviewed</span>;
+    } else if (reviewStatus === 'needs-correction') {
+      return <span className="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">Needs Correction</span>;
+    }
+  };
+
+  // Function to generate pagination links
+  const generatePaginationItems = () => {
+    const items = [];
+    
+    // Always show first page
+    items.push(
+      <li key="first">
+        <button 
+          onClick={() => setCurrentPage(1)}
+          className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+            currentPage === 1 
+              ? 'bg-blue-50 text-blue-600' 
+              : 'bg-white text-gray-500 hover:bg-gray-50'
+          }`}
+        >
+          1
+        </button>
+      </li>
+    );
+    
+    // If there are many pages, add ellipsis after first page
+    if (currentPage > 3) {
+      items.push(
+        <li key="ellipsis1">
+          <span className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700">
+            ...
+          </span>
+        </li>
+      );
+    }
+    
+    // Add pages around current page
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      items.push(
+        <li key={i}>
+          <button 
+            onClick={() => setCurrentPage(i)}
+            className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+              currentPage === i 
+                ? 'bg-blue-50 text-blue-600' 
+                : 'bg-white text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            {i}
+          </button>
+        </li>
+      );
+    }
+    
+    // If there are many pages, add ellipsis before last page
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <li key="ellipsis2">
+          <span className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700">
+            ...
+          </span>
+        </li>
+      );
+    }
+    
+    // Always show last page if it's not the first page
+    if (totalPages > 1) {
+      items.push(
+        <li key="last">
+          <button 
+            onClick={() => setCurrentPage(totalPages)}
+            className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+              currentPage === totalPages 
+                ? 'bg-blue-50 text-blue-600' 
+                : 'bg-white text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            {totalPages}
+          </button>
+        </li>
+      );
+    }
+    
+    return items;
+  };
+
+  // Render document card view
+  const renderDocumentCard = (doc) => (
+    <div key={doc.id} className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            {doc.category === 'certificates' ? (
+              <svg className="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : doc.category === 'id_docs' ? (
+              <svg className="h-6 w-6 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+              </svg>
+            ) : doc.category === 'lab_results' ? (
+              <svg className="h-6 w-6 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+            ) : (
+              <svg className="h-6 w-6 text-orange-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            )}
+            <h3 className="font-medium text-gray-900 truncate" title={doc.name}>
+              {doc.name}
+            </h3>
+          </div>
+          {getReviewStatusBadge(doc.reviewStatus)}
+        </div>
+        
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            Patient: {doc.patient}
+          </div>
+        </div>
+        
+        <div className="mt-2 flex items-center justify-between">
+          <div className="text-xs text-gray-500">
+            Uploaded: {doc.uploadDate}
+          </div>
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+            doc.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+          }`}>
+            {doc.status === 'processed' ? 'Processed' : 'Processing'}
+          </span>
+        </div>
+      </div>
+      
+      <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex justify-between">
+        <button onClick={() => {}} className="text-sm font-medium text-blue-600 hover:text-blue-500">
+          View
+        </button>
+        <div className="flex space-x-2">
+          <button 
+            onClick={() => updateDocumentReviewStatus(doc.id, 'reviewed')} 
+            className="text-sm text-green-600 hover:text-green-500"
+            title="Mark as reviewed"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button 
+            onClick={() => updateDocumentReviewStatus(doc.id, 'needs-correction')} 
+            className="text-sm text-red-600 hover:text-red-500"
+            title="Mark as needs correction"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render document list item
+  const renderDocumentListItem = (doc) => (
+    <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg mb-2 hover:bg-gray-50">
+      <div className="flex items-center space-x-4">
+        {doc.category === 'certificates' ? (
+          <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ) : doc.category === 'id_docs' ? (
+          <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+          </svg>
+        ) : doc.category === 'lab_results' ? (
+          <svg className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        ) : (
+          <svg className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        )}
+        <div>
+          <h3 className="font-medium text-gray-900">{doc.name}</h3>
+          <div className="text-sm text-gray-500">
+            Patient: {doc.patient} • Uploaded: {doc.uploadDate}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center space-x-4">
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+          doc.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+        }`}>
+          {doc.status === 'processed' ? 'Processed' : 'Processing'}
+        </span>
+        {getReviewStatusBadge(doc.reviewStatus)}
+        <div className="flex space-x-2">
+          <button onClick={() => {}} className="text-sm px-3 py-1 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100">
+            View
+          </button>
+          <button 
+            onClick={() => updateDocumentReviewStatus(doc.id, 'reviewed')} 
+            className="text-sm p-1 text-green-600 hover:text-green-700 rounded-full hover:bg-green-50"
+            title="Mark as reviewed"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          <button 
+            onClick={() => updateDocumentReviewStatus(doc.id, 'needs-correction')} 
+            className="text-sm p-1 text-red-600 hover:text-red-700 rounded-full hover:bg-red-50"
+            title="Mark as needs correction"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <MainLayout title="Documents - Medical Certification Platform">
+      {/* Header section */}
+      <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Documents</h2>
+        <div className="mt-3 sm:mt-0 sm:ml-4 flex space-x-3">
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            onClick={() => setShowUploader(true)}
+          >
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Upload New Documents
+          </button>
+        </div>
+      </div>
+
+      {/* Main Tabs - Documents, Uploads, Security */}
+      <div className="mt-6 mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'documents'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Documents
+            </button>
+            <button
+              onClick={() => setActiveTab('uploads')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'uploads'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Upload Documents
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'security'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Security
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Documents Tab Content */}
+      {activeTab === 'documents' && (
+        <>
+          {/* Search and Filters */}
+          <div className="mb-6 sm:flex sm:items-center sm:justify-between">
+            <div className="max-w-lg w-full lg:max-w-xs">
+              <label htmlFor="search" className="sr-only">Search</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <input
+                  id="search"
+                  name="search"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Search documents"
+                  type="search"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1); // Reset to first page on search
+                  }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 sm:mt-0 sm:ml-4 flex space-x-3">
+              <div>
+                <label htmlFor="status-filter" className="sr-only">Filter by Status</label>
+                <select
+                  id="status-filter"
+                  name="status-filter"
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1); // Reset to first page on filter change
+                  }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="processed">Processed</option>
+                  <option value="processing">Processing</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="type-filter" className="sr-only">Filter by Type</label>
+                <select
+                  id="type-filter"
+                  name="type-filter"
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  value={documentTypeFilter}
+                  onChange={(e) => {
+                    setDocumentTypeFilter(e.target.value);
+                    setCurrentPage(1); // Reset to first page on filter change
+                  }}
+                >
+                  <option value="all">All Types</option>
+                  {uniqueDocumentTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* View Toggle and Review Status Summary */}
+          <div className="mb-6 sm:flex sm:items-center sm:justify-between">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setViewMode('card')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  viewMode === 'card'
+                    ? 'bg-gray-200 text-gray-800'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  viewMode === 'list'
+                    ? 'bg-gray-200 text-gray-800'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+            
+            {filteredDocuments.length > 0 && (
+              <div className="mt-3 sm:mt-0 flex items-center text-sm text-gray-500">
+                <div className="mr-4">
+                  <span className="font-medium text-gray-900">Review Status:</span>
+                </div>
+                <div className="flex space-x-4">
+                  {notReviewedCount > 0 && (
+                    <span className="text-gray-600">
+                      {notReviewedCount} not reviewed
+                    </span>
+                  )}
+                  {reviewedCount > 0 && (
+                    <span className="text-green-600">
+                      {reviewedCount} reviewed
+                    </span>
+                  )}
+                  {needsCorrectionCount > 0 && (
+                    <span className="text-red-600">
+                      {needsCorrectionCount} needs correction
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Document List or Empty State */}
+          {filteredDocuments.length === 0 ? (
+            <div className="text-center py-12 bg-white shadow overflow-hidden rounded-lg">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No documents found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search or filter criteria.
+              </p>
+              <div className="mt-6">
+                <button
+                  type="button"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setDocumentTypeFilter('all');
+                    setActiveCategory('all');
+                  }}
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reset Filters
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Document Grid or List */}
+              {viewMode === 'card' ? (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {paginatedDocuments.map(doc => renderDocumentCard(doc))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paginatedDocuments.map(doc => renderDocumentListItem(doc))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8">
+                  <nav className="border-t border-gray-200 px-4 flex items-center justify-between sm:px-0">
+                    <div className="w-0 flex-1 flex">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className={`${
+                          currentPage === 1 ? 'cursor-not-allowed text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                        } border-t-2 border-transparent pt-4 pr-1 inline-flex items-center text-sm font-medium`}
+                      >
+                        <svg className="mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                        </svg>
+                        Previous
+                      </button>
+                    </div>
+                    <div className="hidden md:flex">
+                      <div className="border-t-2 border-transparent">
+                        <ul className="flex items-center -mt-px space-x-1">
+                          {generatePaginationItems()}
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="w-0 flex-1 flex justify-end">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`${
+                          currentPage === totalPages ? 'cursor-not-allowed text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                        } border-t-2 border-transparent pt-4 pl-1 inline-flex items-center text-sm font-medium`}
+                      >
+                        Next
+                        <svg className="ml-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  </nav>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* Uploads Tab Content */}
+      {activeTab === 'uploads' && (
+        <div className="max-w-3xl mx-auto">
+          <FileUploader onUpload={handleFileUploadComplete} loading={loading} />
+          {error && (
+            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded">
+              Error: {error}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Security Tab Content */}
+      {activeTab === 'security' && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900">Document Security Settings</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Configure security settings for your documents and document processing.
+          </p>
+          <div className="mt-6 space-y-6">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="encryption"
+                  name="encryption"
+                  type="checkbox"
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  defaultChecked
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="encryption" className="font-medium text-gray-700">Enable encryption</label>
+                <p className="text-gray-500">All documents will be encrypted at rest and during transit.</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="audit-logs"
+                  name="audit-logs"
+                  type="checkbox"
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  defaultChecked
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="audit-logs" className="font-medium text-gray-700">Enable audit logs</label>
+                <p className="text-gray-500">Track all user interactions with documents for compliance purposes.</p>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="auto-deletion"
+                  name="auto-deletion"
+                  type="checkbox"
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="auto-deletion" className="font-medium text-gray-700">Auto-deletion of documents</label>
+                <p className="text-gray-500">Automatically delete documents after a specified period of time.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Viewer and Chat */}
+      {!showUploader && processedData && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-medium text-gray-900">Document Viewer</h3>
+              <button 
+                onClick={() => {
+                  setShowUploader(true);
+                  setProcessedData(null);
+                  setUploadedFiles([]);
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+              {/* Left Column - Document Viewer */}
+              <div className="w-full lg:w-3/5 overflow-auto p-4">
+                <DocumentViewer 
+                  files={uploadedFiles} 
+                  highlightedEvidence={processedData.highlightedEvidence}
+                  baseUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
+                />
+              </div>
+              
+              {/* Right Column - Chat & API Response */}
+              <div className="w-full lg:w-2/5 overflow-auto border-t lg:border-t-0 lg:border-l border-gray-200">
+                <div className="p-4">
+                  <div className="mb-4 border-b">
+                    <div className="flex">
+                      <button 
+                        className={`py-2 px-4 ${chatApiTab === 'chat' 
+                          ? 'border-b-2 border-blue-500 font-medium text-blue-600' 
+                          : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setChatApiTab('chat')}
+                      >
+                        Chat with Document
+                      </button>
+                      <button 
+                        className={`py-2 px-4 ${chatApiTab === 'api' 
+                          ? 'border-b-2 border-blue-500 font-medium text-blue-600' 
+                          : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setChatApiTab('api')}
+                      >
+                        Extracted Data
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {chatApiTab === 'chat' ? (
+                    <ChatInterface 
+                      history={chatHistory} 
+                      onSendMessage={handleChatMessage} 
+                    />
+                  ) : (
+                    <APIResponseViewer data={processedData.evidence} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </MainLayout>
+  );
+}
