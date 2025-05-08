@@ -11,11 +11,26 @@ export default function APIResponseViewer({ data }) {
     );
   }
   
+  // Get the evidence object from data
+  const evidence = data.evidence || data;
+  
   // Convert evidence to markdown format
   const getMarkdownContent = () => {
     let markdown = '';
     
-    for (const [key, chunks] of Object.entries(data)) {
+    // Add metadata if available
+    if (data.document_type) {
+      markdown += `# Document Information\n\n`;
+      markdown += `- **Document Type:** ${data.document_type}\n`;
+      markdown += `- **Processing Time:** ${data.processing_time || 'Not available'}\n`;
+      markdown += `- **Files Processed:** ${data.files_processed || 'Not available'}\n`;
+      markdown += `- **Pages with Content:** ${data.total_pages_with_content || 'Not available'}\n\n`;
+      markdown += `---\n\n`;
+    }
+    
+    markdown += `# Extracted Content\n\n`;
+    
+    for (const [key, chunks] of Object.entries(evidence)) {
       const [filename, page] = key.split(':');
       markdown += `## ${filename} - Page ${page}\n\n`;
       
@@ -37,7 +52,9 @@ export default function APIResponseViewer({ data }) {
     
     // Simple markdown rendering
     const html = markdown
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-6 mb-3">$1</h1>')
       .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-4 mb-2">$1</h2>')
+      .replace(/^\- \*\*(.+):\*\* (.+)$/gm, '<div class="mb-1"><span class="font-semibold">$1:</span> $2</div>')
       .replace(/^- (.+)$/gm, '<li class="ml-4">$1</li>')
       .replace(/\n---\n/g, '<hr class="my-4" />');
     

@@ -73,10 +73,16 @@ def process_document():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 400
     
-    # Only allow PDF files
+    # Get the document type if provided
+    document_type = request.form.get('documentType', 'Unknown')
+    print(f"Document type: {document_type}")
+    
+    # Check for allowed file types (PDF, image files, DICOM)
+    allowed_extensions = ['.pdf', '.png', '.jpg', '.jpeg', '.dcm', '.dicom']
     for file in files:
-        if not file.filename.lower().endswith('.pdf'):
-            response = jsonify({"error": f"File {file.filename} is not a PDF"})
+        file_ext = os.path.splitext(file.filename.lower())[1]
+        if not file_ext in allowed_extensions:
+            response = jsonify({"error": f"File {file.filename} has an unsupported format. Allowed formats: PDF, PNG, JPG, JPEG, DICOM"})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
     
@@ -91,7 +97,10 @@ def process_document():
     filenames = []
     try:
         for file in files:
-            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            # Get the file extension
+            file_ext = os.path.splitext(file.filename.lower())[1]
+            # Create a temporary file with the correct extension
+            with tempfile.NamedTemporaryFile(suffix=file_ext, delete=False) as tmp:
                 file.save(tmp.name)
                 temp_paths.append(tmp.name)
                 filenames.append(file.filename)
@@ -154,6 +163,7 @@ def process_document():
             "evidence": all_evidence,
             "processing_time": f"{minutes}m {seconds}s",
             "status": "success",
+            "document_type": document_type,
             "files_processed": len(files),
             "total_pages_with_content": len(all_evidence)
         })

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import MainLayout from '../components/MainLayout';
 import FileUploader from '../components/FileUploader';
 import DocumentViewer from '../components/DocumentViewer';
@@ -6,6 +7,8 @@ import ChatInterface from '../components/ChatInterface';
 import APIResponseViewer from '../components/APIResponseViewer';
 
 export default function Documents() {
+  const router = useRouter();
+  
   // Basic state
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [processedData, setProcessedData] = useState(null);
@@ -16,6 +19,13 @@ export default function Documents() {
   
   // Enhanced UI state
   const [activeTab, setActiveTab] = useState('documents'); // 'documents', 'uploads', 'security'
+  
+  // Check for tab query parameter when the component mounts
+  useEffect(() => {
+    if (router.query.tab) {
+      setActiveTab(router.query.tab);
+    }
+  }, [router.query]);
   const [chatApiTab, setChatApiTab] = useState('chat'); // 'chat' or 'api'
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,10 +37,12 @@ export default function Documents() {
   // Filter documents by categories (mock data)
   const documentCategories = [
     { id: 'all', name: 'All Documents' },
-    { id: 'certificates', name: 'Medical Certificates' },
-    { id: 'id_docs', name: 'ID Documents' },
-    { id: 'lab_results', name: 'Lab Results' },
-    { id: 'reports', name: 'Medical Reports' },
+    { id: 'certificates', name: 'Certificate of Fitness' },
+    { id: 'questionnaire', name: 'Medical Questionnaire' },
+    { id: 'audiogram', name: 'Audiogram' },
+    { id: 'spirometer', name: 'Spirometer' },
+    { id: 'xray', name: 'X-Ray Report' },
+    { id: 'referal', name: 'Referal Form' },
   ];
 
   const [activeCategory, setActiveCategory] = useState('all');
@@ -39,7 +51,7 @@ export default function Documents() {
   const documentList = [
     { 
       id: "DOC-2025-001", 
-      name: 'John_Doe_Medical_Certificate.pdf', 
+      name: 'John_Doe_Certificate.pdf', 
       category: 'certificates', 
       uploadDate: '2025-05-01', 
       uploadTime: '09:23:45',
@@ -51,8 +63,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-002", 
-      name: 'Jane_Smith_ID.pdf', 
-      category: 'id_docs', 
+      name: 'Jane_Smith_Questionnaire.pdf', 
+      category: 'questionnaire', 
       uploadDate: '2025-05-03', 
       uploadTime: '11:05:33',
       processedTime: '11:08:46', 
@@ -63,8 +75,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-003", 
-      name: 'Blood_Work_Results_May.pdf', 
-      category: 'lab_results', 
+      name: 'Robert_Brown_Audiogram.pdf', 
+      category: 'audiogram', 
       uploadDate: '2025-05-05', 
       uploadTime: '14:32:11',
       processedTime: null, 
@@ -75,8 +87,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-004", 
-      name: 'Annual_Checkup_Report.pdf', 
-      category: 'reports', 
+      name: 'Alice_Johnson_Spirometer.pdf', 
+      category: 'spirometer', 
       uploadDate: '2025-05-07', 
       uploadTime: '08:45:22',
       processedTime: '08:50:17', 
@@ -87,7 +99,7 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-005", 
-      name: 'Fit_For_Work_Certificate.pdf', 
+      name: 'Michael_Wilson_Certificate.pdf', 
       category: 'certificates', 
       uploadDate: '2025-05-10', 
       uploadTime: '15:17:32',
@@ -99,8 +111,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-006", 
-      name: 'COVID_Test_Results.pdf', 
-      category: 'lab_results', 
+      name: 'Sarah_Davis_Xray.pdf', 
+      category: 'xray', 
       uploadDate: '2025-05-12', 
       uploadTime: '13:21:05',
       processedTime: '13:25:33', 
@@ -111,8 +123,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-007", 
-      name: 'Pre-Employment_Screening.pdf', 
-      category: 'reports', 
+      name: 'James_Wilson_Referal.pdf', 
+      category: 'referal', 
       uploadDate: '2025-05-14', 
       uploadTime: '10:05:18',
       processedTime: '10:12:45', 
@@ -123,8 +135,8 @@ export default function Documents() {
     },
     { 
       id: "DOC-2025-008", 
-      name: 'Vaccination_Record.pdf', 
-      category: 'certificates', 
+      name: 'Emily_Johnson_Audiogram.pdf', 
+      category: 'audiogram', 
       uploadDate: '2025-05-16', 
       uploadTime: '16:43:29',
       processedTime: '16:44:51', 
@@ -171,7 +183,7 @@ export default function Documents() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message,
-          evidence: processedData.evidence || {}
+          evidence: processedData.evidence || processedData || {}
         }),
         signal: controller.signal
       });
@@ -364,17 +376,25 @@ export default function Documents() {
               <svg className="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            ) : doc.category === 'id_docs' ? (
+            ) : doc.category === 'questionnaire' ? (
               <svg className="h-6 w-6 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
-            ) : doc.category === 'lab_results' ? (
+            ) : doc.category === 'audiogram' ? (
               <svg className="h-6 w-6 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 01.707-7.072m-2.829 9.9a9 9 0 010-12.728" />
+              </svg>
+            ) : doc.category === 'spirometer' ? (
+              <svg className="h-6 w-6 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 010-7.072m0 0a5 5 0 017.072 0M6 9h.01M15 9h.01M9 9h.01M12 9h.01" />
+              </svg>
+            ) : doc.category === 'xray' ? (
+              <svg className="h-6 w-6 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             ) : (
               <svg className="h-6 w-6 text-orange-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5h7a2 2 0 012 2v12a2 2 0 01-2 2H9a2 2 0 01-2-2V7a2 2 0 012-2z" />
               </svg>
             )}
             <div className="mr-2">
@@ -466,17 +486,25 @@ export default function Documents() {
           <svg className="h-8 w-8 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-        ) : doc.category === 'id_docs' ? (
+        ) : doc.category === 'questionnaire' ? (
           <svg className="h-8 w-8 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
-        ) : doc.category === 'lab_results' ? (
+        ) : doc.category === 'audiogram' ? (
           <svg className="h-8 w-8 text-purple-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 01.707-7.072m-2.829 9.9a9 9 0 010-12.728" />
+          </svg>
+        ) : doc.category === 'spirometer' ? (
+          <svg className="h-8 w-8 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 010-7.072m0 0a5 5 0 017.072 0M6 9h.01M15 9h.01M9 9h.01M12 9h.01" />
+          </svg>
+        ) : doc.category === 'xray' ? (
+          <svg className="h-8 w-8 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         ) : (
           <svg className="h-8 w-8 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5h7a2 2 0 012 2v12a2 2 0 01-2 2H9a2 2 0 01-2-2V7a2 2 0 012-2z" />
           </svg>
         )}
         <div className="min-w-0 flex-1">
@@ -541,7 +569,7 @@ export default function Documents() {
   );
 
   return (
-    <MainLayout title="Documents - Medical Certification Platform">
+    <MainLayout title="Documents - Surgiscan Platform">
       {/* Header section */}
       <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between">
         <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl">Documents</h2>
@@ -549,7 +577,10 @@ export default function Documents() {
           <button
             type="button"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            onClick={() => setShowUploader(true)}
+            onClick={() => {
+              setActiveTab('uploads');
+              setShowUploader(true);
+            }}
           >
             <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -898,7 +929,7 @@ export default function Documents() {
               <div className="w-full lg:w-3/5 overflow-auto p-4">
                 <DocumentViewer 
                   files={uploadedFiles} 
-                  highlightedEvidence={processedData.highlightedEvidence}
+                  highlightedEvidence={processedData.evidence || processedData.highlightedEvidence || {}}
                   baseUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
                 />
               </div>
@@ -933,7 +964,7 @@ export default function Documents() {
                       onSendMessage={handleChatMessage} 
                     />
                   ) : (
-                    <APIResponseViewer data={processedData.evidence} />
+                    <APIResponseViewer data={processedData} />
                   )}
                 </div>
               </div>

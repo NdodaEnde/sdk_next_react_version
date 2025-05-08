@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import MainLayout from '../components/MainLayout';
 
 // Dashboard components
@@ -113,7 +114,7 @@ const UpcomingExpirations = () => {
 
 export default function Dashboard() {
   return (
-    <MainLayout title="Dashboard - Medical Certification Platform">
+    <MainLayout title="Dashboard - Surgiscan Platform">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
@@ -217,9 +218,11 @@ export default function Dashboard() {
               </div>
               <h3 className="text-lg font-medium text-gray-900">Upload Documents</h3>
               <p className="mt-1 text-sm text-gray-500">Upload and process documents</p>
-              <button className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                Upload Documents
-              </button>
+              <Link href="/documents?tab=uploads" passHref>
+                <button className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                  Upload Documents
+                </button>
+              </Link>
             </div>
           </div>
 

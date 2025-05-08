@@ -2,11 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export default function FileUploader({ onUpload, loading: externalLoading }) {
   const [files, setFiles] = useState([]);
+  const [documentType, setDocumentType] = useState('Certificate of Fitness');
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingStatus, setProcessingStatus] = useState('');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const fileInputRef = useRef(null);
   const timerRef = useRef(null);
+  
+  // Document type options
+  const documentTypes = [
+    'Certificate of Fitness',
+    'Medical Questionnaire',
+    'Audiogram',
+    'Spirometer',
+    'X-Ray Report',
+    'Referal Form'
+  ];
   
   // Timer effect for tracking elapsed time during processing
   useEffect(() => {
@@ -67,6 +79,9 @@ export default function FileUploader({ onUpload, loading: externalLoading }) {
     files.forEach(file => {
       formData.append('files', file);
     });
+    
+    // Add document type
+    formData.append('documentType', documentType);
     
     try {
       // Make direct call to backend API
@@ -137,66 +152,79 @@ export default function FileUploader({ onUpload, loading: externalLoading }) {
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold text-center mb-6">Upload Documents</h2>
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Batch Document Upload</h2>
+        <span className="text-gray-500">Surgiscan</span>
+      </div>
       
-      <div className="flex flex-col items-center">
-        {/* File selection area with label approach (works in all browsers) */}
-        <label 
-          htmlFor="pdf-file-input" 
-          className={`w-full mb-6 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50 hover:bg-gray-100 transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}
-        >
-          <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+      <div className="border-t pt-6">
+        {/* Document type selection */}
+        <div className="mb-6">
+          <label htmlFor="document-type" className="block text-lg font-medium text-gray-700 mb-2">
+            Default Document Type
+          </label>
+          <select
+            id="document-type"
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-3 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-lg rounded-md"
+            disabled={loading}
+          >
+            {documentTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-sm text-gray-500">
+            This type will be applied to all new files added to the queue
+          </p>
+        </div>
+        
+        {/* File selection area */}
+        <div className="mb-6">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
+            Select Documents
+          </label>
           
-          <div className="mt-4 text-center">
-            <span className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-              Select PDF Files
-            </span>
-            <p className="text-xs text-gray-500 mt-2">PDF files only</p>
-          </div>
-        </label>
-        
-        {/* Hidden file input */}
-        <input 
-          id="pdf-file-input"
-          type="file" 
-          accept="application/pdf" 
-          multiple 
-          onChange={handleFileChange}
-          className="hidden" // Completely hidden - label takes care of it
-          disabled={loading}
-        />
-        
-        {/* Display selected files */}
-        {files.length > 0 && !loading && (
-          <div className="mb-6 w-full">
-            <h3 className="text-md font-medium mb-2">Selected Files ({files.length}):</h3>
-            <ul className="bg-gray-50 rounded-md border border-gray-200 overflow-hidden divide-y divide-gray-200">
-              {files.map((file, index) => (
-                <li key={index} className="px-4 py-3 flex justify-between items-center hover:bg-gray-100">
-                  <div className="flex items-center">
-                    <svg className="h-5 w-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-sm text-blue-600 font-medium">{file.name}</span>
-                  </div>
-                  <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(2)} KB)</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+          {/* Hidden file input */}
+          <input 
+            ref={fileInputRef}
+            id="document-file-input"
+            type="file" 
+            accept=".pdf,.png,.jpg,.jpeg,.dcm,.dicom,application/pdf,application/dicom"
+            multiple 
+            onChange={handleFileChange}
+            className="hidden" 
+            disabled={loading}
+          />
+          
+          {/* File input with label */}
+          <label 
+            htmlFor="document-file-input" 
+            className="block w-full cursor-pointer border border-gray-300 rounded-md py-3 px-4 text-base text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {files.length > 0 
+              ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` 
+              : "Choose Files  no files selected"}
+          </label>
+          
+          <p className="mt-2 text-sm text-gray-500">
+            Supported formats: PDF, PNG, JPG, JPEG, DICOM (.dcm)
+          </p>
+          
+          <p className="mt-4 text-sm text-gray-500">
+            These documents will be uploaded to your organization
+          </p>
+        </div>
         
         {/* Progress bar and status */}
         {loading && (
           <div className="w-full mb-6 space-y-2">
-            {/* Elapsed time display */}
-            <div className="text-center mb-1">
+            {/* Processing time display */}
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-sm font-medium text-gray-700">{processingStatus}</span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 Processing Time: {formatTime(elapsedTime)}
               </span>
@@ -210,36 +238,39 @@ export default function FileUploader({ onUpload, loading: externalLoading }) {
               ></div>
             </div>
             
-            {/* Status and percentage */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">{processingStatus}</span>
+            {/* Percentage */}
+            <div className="text-right">
               <span className="text-sm font-medium text-gray-700">{uploadProgress}%</span>
             </div>
           </div>
         )}
         
-        {/* Process button */}
-        {files.length > 0 && !loading && (
-          <button 
-            onClick={handleSubmit}
-            disabled={loading || externalLoading}
-            className={`w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white ${
-              (loading || externalLoading) ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {externalLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing Documents...
-              </>
-            ) : (
-              <>Process Documents</>
-            )}
-          </button>
-        )}
+        {/* Upload button */}
+        <button 
+          onClick={handleSubmit}
+          disabled={files.length === 0 || loading || externalLoading}
+          className={`mt-4 w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white 
+            ${files.length === 0 || loading || externalLoading
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-gray-600 hover:bg-gray-700'}`}
+        >
+          {loading || externalLoading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </>
+          ) : (
+            <>
+              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Start Batch Upload
+            </>
+          )}
+        </button>
         
         {/* Success message */}
         {uploadProgress === 100 && (
@@ -250,6 +281,26 @@ export default function FileUploader({ onUpload, loading: externalLoading }) {
             <div className="text-gray-500 text-sm">
               Total processing time: {formatTime(elapsedTime)}
             </div>
+          </div>
+        )}
+        
+        {/* Display selected files */}
+        {files.length > 0 && !loading && (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-2">Selected Files:</h3>
+            <ul className="bg-gray-50 rounded-md border border-gray-200 overflow-hidden divide-y divide-gray-200">
+              {files.map((file, index) => (
+                <li key={index} className="px-4 py-3 flex justify-between items-center hover:bg-gray-100">
+                  <div className="flex items-center">
+                    <svg className="h-5 w-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm text-gray-700 font-medium">{file.name}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

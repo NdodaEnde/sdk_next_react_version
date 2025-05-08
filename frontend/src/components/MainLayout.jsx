@@ -53,7 +53,7 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const MainLayout = ({ children, title = "Medical Certification Platform" }) => {
+const MainLayout = ({ children, title = "Surgiscan Platform" }) => {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -87,7 +87,7 @@ const MainLayout = ({ children, title = "Medical Certification Platform" }) => {
     <div className="min-h-screen bg-gray-100">
       <Head>
         <title>{title}</title>
-        <meta name="description" content="Medical Certification Management Platform" />
+        <meta name="description" content="Surgiscan Platform" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -111,7 +111,7 @@ const MainLayout = ({ children, title = "Medical Certification Platform" }) => {
           
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <h1 className="text-xl font-bold text-blue-600">MedCert</h1>
+              <h1 className="text-xl font-bold text-blue-600">Surgiscan</h1>
             </div>
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => (
@@ -152,9 +152,9 @@ const MainLayout = ({ children, title = "Medical Certification Platform" }) => {
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4 justify-between">
               {sidebarOpen ? (
-                <h1 className="text-xl font-bold text-blue-600">MedCert</h1>
+                <h1 className="text-xl font-bold text-blue-600">Surgiscan</h1>
               ) : (
-                <h1 className="text-xl font-bold text-blue-600">M</h1>
+                <h1 className="text-xl font-bold text-blue-600">S</h1>
               )}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
