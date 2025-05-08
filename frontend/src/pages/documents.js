@@ -35,16 +35,104 @@ export default function Documents() {
 
   const [activeCategory, setActiveCategory] = useState('all');
 
-  // Mock document list with review status
+  // Mock document list with review status and timestamps
   const documentList = [
-    { id: 1, name: 'John_Doe_Medical_Certificate.pdf', category: 'certificates', uploadDate: '2025-05-01', status: 'processed', patient: 'John Doe', reviewStatus: 'reviewed' },
-    { id: 2, name: 'Jane_Smith_ID.pdf', category: 'id_docs', uploadDate: '2025-05-03', status: 'processed', patient: 'Jane Smith', reviewStatus: 'not-reviewed' },
-    { id: 3, name: 'Blood_Work_Results_May.pdf', category: 'lab_results', uploadDate: '2025-05-05', status: 'processing', patient: 'Robert Brown', reviewStatus: 'not-reviewed' },
-    { id: 4, name: 'Annual_Checkup_Report.pdf', category: 'reports', uploadDate: '2025-05-07', status: 'processed', patient: 'Alice Johnson', reviewStatus: 'needs-correction' },
-    { id: 5, name: 'Fit_For_Work_Certificate.pdf', category: 'certificates', uploadDate: '2025-05-10', status: 'processed', patient: 'Michael Wilson', reviewStatus: 'reviewed' },
-    { id: 6, name: 'COVID_Test_Results.pdf', category: 'lab_results', uploadDate: '2025-05-12', status: 'processed', patient: 'Sarah Davis', reviewStatus: 'not-reviewed' },
-    { id: 7, name: 'Pre-Employment_Screening.pdf', category: 'reports', uploadDate: '2025-05-14', status: 'processed', patient: 'James Wilson', reviewStatus: 'not-reviewed' },
-    { id: 8, name: 'Vaccination_Record.pdf', category: 'certificates', uploadDate: '2025-05-16', status: 'processed', patient: 'Emily Johnson', reviewStatus: 'reviewed' },
+    { 
+      id: "DOC-2025-001", 
+      name: 'John_Doe_Medical_Certificate.pdf', 
+      category: 'certificates', 
+      uploadDate: '2025-05-01', 
+      uploadTime: '09:23:45',
+      processedTime: '09:25:12', 
+      status: 'processed', 
+      patient: 'John Doe',
+      patientId: '8501235678091', 
+      reviewStatus: 'reviewed'
+    },
+    { 
+      id: "DOC-2025-002", 
+      name: 'Jane_Smith_ID.pdf', 
+      category: 'id_docs', 
+      uploadDate: '2025-05-03', 
+      uploadTime: '11:05:33',
+      processedTime: '11:08:46', 
+      status: 'processed', 
+      patient: 'Jane Smith',
+      patientId: '9203186543210', 
+      reviewStatus: 'not-reviewed'
+    },
+    { 
+      id: "DOC-2025-003", 
+      name: 'Blood_Work_Results_May.pdf', 
+      category: 'lab_results', 
+      uploadDate: '2025-05-05', 
+      uploadTime: '14:32:11',
+      processedTime: null, 
+      status: 'processing', 
+      patient: 'Robert Brown',
+      patientId: '7712245839017', 
+      reviewStatus: 'not-reviewed'
+    },
+    { 
+      id: "DOC-2025-004", 
+      name: 'Annual_Checkup_Report.pdf', 
+      category: 'reports', 
+      uploadDate: '2025-05-07', 
+      uploadTime: '08:45:22',
+      processedTime: '08:50:17', 
+      status: 'processed', 
+      patient: 'Alice Johnson',
+      patientId: '8903122547893', 
+      reviewStatus: 'needs-correction'
+    },
+    { 
+      id: "DOC-2025-005", 
+      name: 'Fit_For_Work_Certificate.pdf', 
+      category: 'certificates', 
+      uploadDate: '2025-05-10', 
+      uploadTime: '15:17:32',
+      processedTime: '15:19:54', 
+      status: 'processed', 
+      patient: 'Michael Wilson',
+      patientId: '9001019283745', 
+      reviewStatus: 'reviewed'
+    },
+    { 
+      id: "DOC-2025-006", 
+      name: 'COVID_Test_Results.pdf', 
+      category: 'lab_results', 
+      uploadDate: '2025-05-12', 
+      uploadTime: '13:21:05',
+      processedTime: '13:25:33', 
+      status: 'processed', 
+      patient: 'Sarah Davis',
+      patientId: '8606157269384', 
+      reviewStatus: 'not-reviewed'
+    },
+    { 
+      id: "DOC-2025-007", 
+      name: 'Pre-Employment_Screening.pdf', 
+      category: 'reports', 
+      uploadDate: '2025-05-14', 
+      uploadTime: '10:05:18',
+      processedTime: '10:12:45', 
+      status: 'processed', 
+      patient: 'James Wilson',
+      patientId: '8204176283940', 
+      reviewStatus: 'not-reviewed'
+    },
+    { 
+      id: "DOC-2025-008", 
+      name: 'Vaccination_Record.pdf', 
+      category: 'certificates', 
+      uploadDate: '2025-05-16', 
+      uploadTime: '16:43:29',
+      processedTime: '16:44:51', 
+      status: 'processed', 
+      patient: 'Emily Johnson',
+      patientId: '9505236584930', 
+      reviewStatus: 'reviewed'
+    },
   ];
 
   // Get unique document types
@@ -269,6 +357,7 @@ export default function Documents() {
   const renderDocumentCard = (doc) => (
     <div key={doc.id} className="bg-white shadow rounded-lg overflow-hidden">
       <div className="p-4">
+        {/* Header with document name and review status */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
             {doc.category === 'certificates' ? (
@@ -288,23 +377,50 @@ export default function Documents() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             )}
-            <h3 className="font-medium text-gray-900 truncate" title={doc.name}>
-              {doc.name}
-            </h3>
+            <div className="mr-2">
+              <h3 className="font-medium text-gray-900 truncate" title={doc.name}>
+                {doc.name}
+              </h3>
+              <p className="text-xs text-gray-500">{doc.id}</p>
+            </div>
           </div>
           {getReviewStatusBadge(doc.reviewStatus)}
         </div>
         
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
+        {/* Patient information */}
+        <div className="mt-3 flex flex-col">
+          <div className="text-sm text-gray-700 font-medium">
             Patient: {doc.patient}
+          </div>
+          <div className="text-xs text-gray-500">
+            ID: {doc.patientId}
           </div>
         </div>
         
-        <div className="mt-2 flex items-center justify-between">
-          <div className="text-xs text-gray-500">
-            Uploaded: {doc.uploadDate}
+        {/* Upload and processing info */}
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="text-xs">
+            <span className="text-gray-500">Uploaded:</span>
+            <div className="font-medium">
+              {doc.uploadDate}
+              <div className="text-gray-500">{doc.uploadTime}</div>
+            </div>
           </div>
+          
+          <div className="text-xs text-right">
+            <span className="text-gray-500">Processed:</span>
+            <div className="font-medium">
+              {doc.processedTime ? (
+                <span>{doc.processedTime}</span>
+              ) : (
+                <span className="text-yellow-600">In progress...</span>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Status badge */}
+        <div className="mt-3 flex justify-end">
           <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
             doc.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
           }`}>
@@ -313,6 +429,7 @@ export default function Documents() {
         </div>
       </div>
       
+      {/* Card footer with actions */}
       <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 flex justify-between">
         <button onClick={() => {}} className="text-sm font-medium text-blue-600 hover:text-blue-500">
           View
@@ -346,36 +463,56 @@ export default function Documents() {
     <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg mb-2 hover:bg-gray-50">
       <div className="flex items-center space-x-4">
         {doc.category === 'certificates' ? (
-          <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         ) : doc.category === 'id_docs' ? (
-          <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
           </svg>
         ) : doc.category === 'lab_results' ? (
-          <svg className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8 text-purple-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
           </svg>
         ) : (
-          <svg className="h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8 text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         )}
-        <div>
-          <h3 className="font-medium text-gray-900">{doc.name}</h3>
-          <div className="text-sm text-gray-500">
-            Patient: {doc.patient} • Uploaded: {doc.uploadDate}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center">
+            <h3 className="font-medium text-gray-900 truncate mr-2">{doc.name}</h3>
+            <span className="text-xs text-gray-500 truncate">({doc.id})</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="text-gray-700">
+              <span className="font-medium">Patient:</span> {doc.patient}
+              <div className="text-xs text-gray-500">ID: {doc.patientId}</div>
+            </div>
+            
+            <div className="text-sm text-gray-700">
+              <div>
+                <span className="font-medium">Uploaded:</span> {doc.uploadDate} at {doc.uploadTime}
+              </div>
+              <div>
+                <span className="font-medium">Processed:</span> {doc.processedTime || 'In progress...'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div className="flex items-center space-x-4">
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-          doc.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-        }`}>
-          {doc.status === 'processed' ? 'Processed' : 'Processing'}
-        </span>
-        {getReviewStatusBadge(doc.reviewStatus)}
+      
+      <div className="flex items-center space-x-4 flex-shrink-0">
+        <div className="hidden md:flex flex-col items-end space-y-1">
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+            doc.status === 'processed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+          }`}>
+            {doc.status === 'processed' ? 'Processed' : 'Processing'}
+          </span>
+          {getReviewStatusBadge(doc.reviewStatus)}
+        </div>
+        
         <div className="flex space-x-2">
           <button onClick={() => {}} className="text-sm px-3 py-1 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100">
             View
