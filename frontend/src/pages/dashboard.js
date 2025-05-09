@@ -5,30 +5,30 @@ import MainLayout from '../components/MainLayout';
 // Dashboard components
 const StatCard = ({ title, value, change, icon }) => {
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-colors duration-200">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 dark:bg-blue-600 text-white">
               {icon}
             </div>
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{title}</dt>
               <dd>
-                <div className="text-lg font-medium text-gray-900">{value}</div>
+                <div className="text-lg font-medium text-gray-900 dark:text-white">{value}</div>
               </dd>
             </dl>
           </div>
         </div>
       </div>
-      <div className="bg-gray-50 px-5 py-3">
+      <div className="bg-gray-50 dark:bg-gray-700 px-5 py-3 transition-colors duration-200">
         <div className="text-sm">
-          <span className={`font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`font-medium ${change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {change >= 0 ? '+' : ''}{change}%
           </span>{' '}
-          <span className="text-gray-500">from previous month</span>
+          <span className="text-gray-500 dark:text-gray-400">from previous month</span>
         </div>
       </div>
     </div>
@@ -45,20 +45,20 @@ const RecentActivityCard = () => {
   ];
 
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
+      <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Recent Activity</h3>
       </div>
-      <ul className="divide-y divide-gray-200">
+      <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {activities.map((activity) => (
           <li key={activity.id} className="px-4 py-4 sm:px-6">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                <span className="font-semibold text-blue-600">{activity.user}</span> {activity.action}
-                {activity.patient && <span> for <span className="text-indigo-600">{activity.patient}</span></span>}
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-200 truncate">
+                <span className="font-semibold text-blue-600 dark:text-blue-400">{activity.user}</span> {activity.action}
+                {activity.patient && <span> for <span className="text-indigo-600 dark:text-indigo-400">{activity.patient}</span></span>}
               </p>
               <div className="ml-2 flex-shrink-0 flex">
-                <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                   {activity.time}
                 </p>
               </div>
@@ -66,8 +66,8 @@ const RecentActivityCard = () => {
           </li>
         ))}
       </ul>
-      <div className="px-4 py-4 sm:px-6 border-t border-gray-200">
-        <button className="text-sm font-medium text-blue-600 hover:text-blue-500">View all activity</button>
+      <div className="px-4 py-4 sm:px-6 border-t border-gray-200 dark:border-gray-700">
+        <button className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">View all activity</button>
       </div>
     </div>
   );
@@ -81,22 +81,24 @@ const UpcomingExpirations = () => {
   ];
 
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">Upcoming Certificate Expirations</h3>
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors duration-200">
+      <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Upcoming Certificate Expirations</h3>
       </div>
-      <ul className="divide-y divide-gray-200">
+      <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {expirations.map((cert) => (
           <li key={cert.id} className="px-4 py-4 sm:px-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">{cert.patient}</p>
-                <p className="text-sm text-gray-500">{cert.certificateType}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-200">{cert.patient}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{cert.certificateType}</p>
               </div>
               <div className="ml-2 flex-shrink-0 flex">
                 <p 
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${cert.daysLeft <= 7 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}
+                    ${cert.daysLeft <= 7 
+                      ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:bg-opacity-30 dark:text-red-300' 
+                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:bg-opacity-30 dark:text-yellow-300'}`}
                 >
                   Expires in {cert.daysLeft} days
                 </p>
@@ -105,8 +107,8 @@ const UpcomingExpirations = () => {
           </li>
         ))}
       </ul>
-      <div className="px-4 py-4 sm:px-6 border-t border-gray-200">
-        <button className="text-sm font-medium text-blue-600 hover:text-blue-500">View all expirations</button>
+      <div className="px-4 py-4 sm:px-6 border-t border-gray-200 dark:border-gray-700">
+        <button className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">View all expirations</button>
       </div>
     </div>
   );
@@ -161,10 +163,10 @@ export default function Dashboard() {
 
       {/* Charts Section */}
       <div className="mt-8">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Certificate Issuance Trend</h3>
-          <div className="h-64 bg-gray-100 rounded flex items-center justify-center">
-            <p className="text-gray-500">Chart will be implemented here</p>
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 transition-colors duration-200">
+          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">Certificate Issuance Trend</h3>
+          <div className="h-64 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center transition-colors duration-200">
+            <p className="text-gray-500 dark:text-gray-400">Chart will be implemented here</p>
           </div>
         </div>
       </div>
@@ -177,18 +179,18 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-colors duration-200">
             <div className="p-5 flex flex-col items-center text-center">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-100 text-blue-600 mb-4">
+              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-100 dark:bg-blue-900 dark:bg-opacity-50 text-blue-600 dark:text-blue-300 mb-4">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900">Add Patient</h3>
-              <p className="mt-1 text-sm text-gray-500">Register a new patient in the system</p>
-              <button className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Add Patient</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Register a new patient in the system</p>
+              <button className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
                 Add Patient
               </button>
             </div>

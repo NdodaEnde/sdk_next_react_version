@@ -2,6 +2,7 @@ import '../styles/globals.css';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { pdfjs } from 'react-pdf';
+import { ThemeProvider } from '../context/ThemeContext';
 
 // Initialize PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -85,15 +86,17 @@ function MyApp({ Component, pageProps }) {
   // Show loading state
   if (loading && !publicRoutes.includes(router.pathname)) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="p-8 bg-white rounded-lg shadow-md">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
-            <p className="text-gray-500">Please wait while we set things up for you.</p>
+      <ThemeProvider>
+        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+          <div className="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 dark:border-blue-400 mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-200">Loading...</h2>
+              <p className="text-gray-500 dark:text-gray-400">Please wait while we set things up for you.</p>
+            </div>
           </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
   
@@ -107,9 +110,12 @@ function MyApp({ Component, pageProps }) {
   
   // Add auth context provider when we implement context
   return (
-    // Initially, we'll just pass auth props directly
-    // Later will replace with proper context
-    <Component {...pageProps} auth={authContextValue} />
+    // Wrap the application with ThemeProvider
+    <ThemeProvider>
+      {/* Initially, we'll just pass auth props directly */}
+      {/* Later will replace with proper auth context */}
+      <Component {...pageProps} auth={authContextValue} />
+    </ThemeProvider>
   );
 }
 

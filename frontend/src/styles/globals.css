@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* Dark mode styles */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Smooth transitions for theme changes */
+  body {
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  }
+}
