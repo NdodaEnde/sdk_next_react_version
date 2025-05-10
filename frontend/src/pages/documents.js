@@ -5,6 +5,7 @@ import FileUploader from '../components/FileUploader';
 import DocumentViewer from '../components/DocumentViewer';
 import ChatInterface from '../components/ChatInterface';
 import APIResponseViewer from '../components/APIResponseViewer';
+import EvidenceSummary from '../components/EvidenceSummary';
 
 export default function Documents() {
   const router = useRouter();
@@ -26,6 +27,18 @@ export default function Documents() {
       setActiveTab(router.query.tab);
     }
   }, [router.query]);
+  
+  // Track current document view state
+  const [currentFile, setCurrentFile] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Helper function to get evidence for a specific document page
+  const getCurrentPageEvidence = (fileName, pageNum) => {
+    if (!processedData || !processedData.evidence) return [];
+    
+    const evidenceKey = `${fileName}:${pageNum}`;
+    return processedData.evidence[evidenceKey] || [];
+  };
   const [chatApiTab, setChatApiTab] = useState('chat'); // 'chat' or 'api'
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
@@ -931,6 +944,8 @@ export default function Documents() {
                   files={uploadedFiles} 
                   highlightedEvidence={processedData.evidence || processedData.highlightedEvidence || {}}
                   baseUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
+                  onFileChange={setCurrentFile}
+                  onPageChange={setCurrentPage}
                 />
               </div>
               
@@ -964,7 +979,19 @@ export default function Documents() {
                       onSendMessage={handleChatMessage} 
                     />
                   ) : (
-                    <APIResponseViewer data={processedData} />
+                    <>
+                      <APIResponseViewer data={processedData} />
+                      
+                      {/* Extract evidence summary for current document */}
+                      {currentFile && currentPage && processedData && (
+                        <div className="mt-4">
+                          <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">Highlighted Evidence</h3>
+                          <EvidenceSummary 
+                            evidence={getCurrentPageEvidence(currentFile.name, currentPage)} 
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
