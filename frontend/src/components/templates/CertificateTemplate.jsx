@@ -1,6 +1,9 @@
 import React from 'react';
 
-export default function CertificateTemplate({ data = {} }) {
+export default function CertificateTemplate({ data }) {
+  // Handle null or undefined data
+  const safeData = data || {};
+
   // Extract data with fallbacks for all fields
   const {
     // Employee details
@@ -10,45 +13,52 @@ export default function CertificateTemplate({ data = {} }) {
     exam_date = '',
     expiry_date = '',
     job = '',
-    
+
     // Examination type
     examination_type = '',
-    
+
     // Medical exams with defaults
-    medical_exams = {
-      blood: false,
-      vision: false,
-      depthVision: false,
-      nightVision: false,
-      hearing: false,
-      heights: false,
-      lung: false,
-      xray: false,
-      drugScreen: false
-    },
-    
+    medical_exams = {},
+
     medical_results = {},
-    
+
     // Fitness declaration
     fitness_declaration = '',
-    
+
     // Restrictions with defaults
-    restrictions = {
-      heights: false,
-      dust: false,
-      motorized: false,
-      hearingProtection: false,
-      confinedSpaces: false,
-      chemical: false,
-      spectacles: false,
-      treatment: false
-    },
-    
+    restrictions = {},
+
     // Other fields
     referral = '',
     review_date = '',
     comments = ''
-  } = data;
+  } = safeData;
+
+  // Create safe objects with defaults for nested properties
+  const safeExams = {
+    blood: false,
+    vision: false,
+    depthVision: false,
+    nightVision: false,
+    hearing: false,
+    heights: false,
+    lung: false,
+    xray: false,
+    drugScreen: false,
+    ...medical_exams
+  };
+
+  const safeRestrictions = {
+    heights: false,
+    dust: false,
+    motorized: false,
+    hearingProtection: false,
+    confinedSpaces: false,
+    chemical: false,
+    spectacles: false,
+    treatment: false,
+    ...restrictions
+  };
 
   // Helper function to determine if a checkbox should be marked
   const isChecked = (value) => {
@@ -197,8 +207,8 @@ export default function CertificateTemplate({ data = {} }) {
               <tbody>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">BLOODS</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.blood) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.blood) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.blood) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.blood) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.blood || ''}
@@ -206,8 +216,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">FAR, NEAR VISION</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.vision) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.vision) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.vision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.vision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.vision || ''}
@@ -215,8 +225,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">SIDE & DEPTH</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.depthVision) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.depthVision) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.depthVision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.depthVision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.depthVision || ''}
@@ -224,8 +234,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">NIGHT VISION</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.nightVision) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.nightVision) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.nightVision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.nightVision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.nightVision || ''}
@@ -247,8 +257,8 @@ export default function CertificateTemplate({ data = {} }) {
               <tbody>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">Hearing</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.hearing) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.hearing) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.hearing) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.hearing) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.hearing || ''}
@@ -256,8 +266,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">Working at Heights</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.heights) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.heights) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.heights) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.heights) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.heights || ''}
@@ -265,8 +275,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">Lung Function</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.lung) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.lung) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.lung) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.lung) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.lung || ''}
@@ -274,8 +284,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">X-Ray</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.xray) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.xray) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.xray) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.xray) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.xray || ''}
@@ -283,8 +293,8 @@ export default function CertificateTemplate({ data = {} }) {
                 </tr>
                 <tr>
                   <td className="border border-gray-400 p-1 font-semibold">Drug Screen</td>
-                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.drugScreen) ? 'bg-blue-50' : ''}`}>
-                    {isChecked(medical_exams.drugScreen) ? '✓' : ''}
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(safeExams.drugScreen) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(safeExams.drugScreen) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
                     {medical_results.drugScreen || ''}
@@ -323,31 +333,31 @@ export default function CertificateTemplate({ data = {} }) {
         <table className="w-full border-collapse text-xs">
           <tbody>
             <tr>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.heights) ? 'bg-blue-100' : ''}`}>
-                Heights {isChecked(restrictions.heights) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.heights) ? 'bg-blue-100' : ''}`}>
+                Heights {isChecked(safeRestrictions.heights) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.dust) ? 'bg-blue-100' : ''}`}>
-                Dust Exposure {isChecked(restrictions.dust) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.dust) ? 'bg-blue-100' : ''}`}>
+                Dust Exposure {isChecked(safeRestrictions.dust) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.motorized) ? 'bg-blue-100' : ''}`}>
-                Motorized Equipment {isChecked(restrictions.motorized) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.motorized) ? 'bg-blue-100' : ''}`}>
+                Motorized Equipment {isChecked(safeRestrictions.motorized) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.hearingProtection) ? 'bg-blue-100' : ''}`}>
-                Wear Hearing Protection {isChecked(restrictions.hearingProtection) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.hearingProtection) ? 'bg-blue-100' : ''}`}>
+                Wear Hearing Protection {isChecked(safeRestrictions.hearingProtection) ? '✓' : ''}
               </td>
             </tr>
             <tr>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.confinedSpaces) ? 'bg-blue-100' : ''}`}>
-                Confined Spaces {isChecked(restrictions.confinedSpaces) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.confinedSpaces) ? 'bg-blue-100' : ''}`}>
+                Confined Spaces {isChecked(safeRestrictions.confinedSpaces) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.chemical) ? 'bg-blue-100' : ''}`}>
-                Chemical Exposure {isChecked(restrictions.chemical) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.chemical) ? 'bg-blue-100' : ''}`}>
+                Chemical Exposure {isChecked(safeRestrictions.chemical) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.spectacles) ? 'bg-blue-100' : ''}`}>
-                Wear Spectacles {isChecked(restrictions.spectacles) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.spectacles) ? 'bg-blue-100' : ''}`}>
+                Wear Spectacles {isChecked(safeRestrictions.spectacles) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.treatment) ? 'bg-blue-100' : ''}`}>
-                Remain on Treatment for Chronic Conditions {isChecked(restrictions.treatment) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.treatment) ? 'bg-blue-100' : ''}`}>
+                Remain on Treatment for Chronic Conditions {isChecked(safeRestrictions.treatment) ? '✓' : ''}
               </td>
             </tr>
           </tbody>
