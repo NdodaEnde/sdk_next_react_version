@@ -28,9 +28,9 @@ export default function Documents() {
     }
   }, [router.query]);
   
-  // Track current document view state
+  // Track current document view state for document viewer
   const [currentFile, setCurrentFile] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentDocPage, setCurrentDocPage] = useState(1);
   
   // Helper function to get evidence for a specific document page
   const getCurrentPageEvidence = (fileName, pageNum) => {
@@ -39,12 +39,108 @@ export default function Documents() {
     const evidenceKey = `${fileName}:${pageNum}`;
     return processedData.evidence[evidenceKey] || [];
   };
-  const [chatApiTab, setChatApiTab] = useState('chat'); // 'chat' or 'api'
+  
+  // Add fullscreen change event listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const rightPanel = document.getElementById('rightPanelContent');
+      if (document.fullscreenElement === rightPanel) {
+        rightPanel.classList.add('p-6', 'max-w-7xl', 'mx-auto', 'bg-gray-100', 'dark:bg-gray-900');
+      } else {
+        rightPanel.classList.remove('p-6', 'max-w-7xl', 'mx-auto', 'bg-gray-100', 'dark:bg-gray-900');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Get template component based on document type and filename
+  // Instead of using image files, we'll render SVG templates directly
+  const getTemplateType = (file) => {
+    if (!file) return 'certificate';
+
+    console.log("Getting template type for file:", file.name);
+
+    // PRIORITY 1: Check if there's a document type from the upload dropdown
+    let uploadDocType = null;
+    if (processedData && processedData.documentType) {
+      console.log("Document type from upload dropdown:", processedData.documentType);
+      uploadDocType = processedData.documentType.toLowerCase();
+    }
+
+    // PRIORITY 2: Try to find a matching document in our predefined list
+    const matchingDoc = documentList.find(doc => doc.name === file.name);
+    console.log("Matching document from list:", matchingDoc);
+
+    // PRIORITY 3: Check if the filename contains keywords that indicate the document type
+    const filename = file.name.toLowerCase();
+
+    // Determine document category from filename
+    let fileCategory = null;
+    if (filename.includes('certificate') || filename.includes('fitness')) {
+      fileCategory = 'certificate';
+    } else if (filename.includes('questionnaire') || filename.includes('medical')) {
+      fileCategory = 'questionnaire';
+    } else if (filename.includes('audiogram')) {
+      fileCategory = 'audiogram';
+    } else if (filename.includes('spirometer')) {
+      fileCategory = 'spirometer';
+    } else if (filename.includes('xray') || filename.includes('x-ray')) {
+      fileCategory = 'xray';
+    } else if (filename.includes('referal') || filename.includes('referral')) {
+      fileCategory = 'referral';
+    }
+
+    console.log("Detected category from filename:", fileCategory);
+
+    // Determine the actual category to use based on priorities
+    let finalCategory = 'certificate'; // Default to certificate
+
+    // First priority: document type from upload dropdown
+    if (uploadDocType) {
+      if (uploadDocType.includes('certificate') || uploadDocType.includes('fitness')) {
+        finalCategory = 'certificate';
+      } else if (uploadDocType.includes('questionnaire') || uploadDocType.includes('medical')) {
+        finalCategory = 'questionnaire';
+      } else if (uploadDocType.includes('audiogram')) {
+        finalCategory = 'audiogram';
+      } else if (uploadDocType.includes('spirometer')) {
+        finalCategory = 'spirometer';
+      } else if (uploadDocType.includes('xray') || uploadDocType.includes('x-ray')) {
+        finalCategory = 'xray';
+      } else if (uploadDocType.includes('referal') || uploadDocType.includes('referral')) {
+        finalCategory = 'referral';
+      }
+    }
+
+    // Second priority: document from list
+    if ((!finalCategory || finalCategory === 'certificate') && matchingDoc) {
+      if (matchingDoc.category === 'certificates') {
+        finalCategory = 'certificate';
+      } else if (matchingDoc.category) {
+        finalCategory = matchingDoc.category;
+      }
+    }
+
+    // Third priority: detected from filename
+    if (!finalCategory && fileCategory) {
+      finalCategory = fileCategory;
+    }
+
+    console.log("Final determined template type:", finalCategory);
+    return finalCategory;
+  };
+  
+  // UI state for document listing
+  const [chatApiTab, setChatApiTab] = useState('chat'); // 'chat', 'api', or 'template'
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [documentTypeFilter, setDocumentTypeFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1); // For pagination
   const [itemsPerPage] = useState(6);
 
   // Filter documents by categories (mock data)
@@ -163,18 +259,40 @@ export default function Documents() {
   // Get unique document types
   const uniqueDocumentTypes = [...new Set(documentList.map(doc => doc.category))];
 
-  // Function to handle file upload completion from FileUploader component
-  const handleFileUploadComplete = (files, data) => {
-    setUploadedFiles(files);
-    setProcessedData(data);
-    setShowUploader(false);
+  // Update the handleFileUploadComplete function
+const handleFileUploadComplete = (files, data) => {
+  setUploadedFiles(files);
+  
+  // Set the first file as the current file
+  if (files && files.length > 0) {
+    setCurrentFile(files[0]);
+  }
+  
+  // Store the document type if it was passed from the FileUploader
+  if (data && data.documentType) {
+    console.log("Document type from upload:", data.documentType);
     
-    // Initialize chat with a welcome message
-    setChatHistory([{
-      role: 'assistant',
-      content: `${files.length} document${files.length !== 1 ? 's' : ''} processed successfully! You can now ask questions about the content.`
-    }]);
-  };
+    // Store the document type correctly
+    setProcessedData({
+      ...data,
+      documentType: data.documentType
+    });
+  } else {
+    setProcessedData(data);
+  }
+  
+  setShowUploader(false);
+  
+  console.log("Uploaded files:", files);
+  console.log("Processed data:", data);
+  console.log("Current file set to:", files[0]); // Debug log
+  
+  // Initialize chat with a welcome message
+  setChatHistory([{
+    role: 'assistant',
+    content: `${files.length} document${files.length !== 1 ? 's' : ''} processed successfully! You can now ask questions about the content.`
+  }]);
+};
 
   // Handle chat messages
   const handleChatMessage = async (message) => {
@@ -919,86 +1037,502 @@ export default function Documents() {
       )}
 
       {/* Document Viewer and Chat */}
-      {!showUploader && processedData && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-medium text-gray-900">Document Viewer</h3>
-              <button 
-                onClick={() => {
-                  setShowUploader(true);
-                  setProcessedData(null);
-                  setUploadedFiles([]);
-                }}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Left Column - Document Viewer */}
-              <div className="w-full lg:w-3/5 overflow-auto p-4">
-                <DocumentViewer 
-                  files={uploadedFiles} 
-                  highlightedEvidence={processedData.evidence || processedData.highlightedEvidence || {}}
-                  baseUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
-                  onFileChange={setCurrentFile}
-                  onPageChange={setCurrentPage}
-                />
+{!showUploader && processedData && (
+  <div className="fixed inset-0 bg-gray-900 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div className="relative bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b">
+        <h3 className="text-lg font-medium text-gray-900">Document Viewer</h3>
+        <button 
+          onClick={() => {
+            setShowUploader(true);
+            setProcessedData(null);
+            setUploadedFiles([]);
+          }}
+          className="text-gray-400 hover:text-gray-500"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Column - Document Viewer */}
+        <div className="w-full lg:w-3/5 overflow-auto p-4">
+          <DocumentViewer 
+            files={uploadedFiles} 
+            highlightedEvidence={processedData.evidence || processedData.highlightedEvidence || {}}
+            baseUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
+            onFileChange={setCurrentFile}
+            onPageChange={setCurrentDocPage}
+          />
+        </div>
+        
+        {/* Right Column - Chat & API Response */}
+        <div className="w-full lg:w-2/5 overflow-auto border-t lg:border-t-0 lg:border-l border-gray-200">
+          <div className="p-4">
+            <div className="mb-4 border-b">
+              <div className="flex justify-between items-center">
+                <div className="flex">
+                  <button
+                    className={`py-2 px-4 ${chatApiTab === 'chat'
+                      ? 'border-b-2 border-blue-500 font-medium text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setChatApiTab('chat')}
+                  >
+                    Chat with Document
+                  </button>
+                  <button
+                    className={`py-2 px-4 ${chatApiTab === 'api'
+                      ? 'border-b-2 border-blue-500 font-medium text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setChatApiTab('api')}
+                  >
+                    Extracted Data
+                  </button>
+                  <button
+                    className={`py-2 px-4 ${chatApiTab === 'template'
+                      ? 'border-b-2 border-blue-500 font-medium text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'}`}
+                    onClick={() => setChatApiTab('template')}
+                  >
+                    Template
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    const rightPanel = document.getElementById('rightPanelContent');
+                    if (rightPanel && rightPanel.requestFullscreen) {
+                      rightPanel.requestFullscreen();
+                    }
+                  }}
+                  className="px-3 py-1 border rounded text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 flex items-center"
+                >
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                  </svg>
+                  Full Screen
+                </button>
               </div>
-              
-              {/* Right Column - Chat & API Response */}
-              <div className="w-full lg:w-2/5 overflow-auto border-t lg:border-t-0 lg:border-l border-gray-200">
-                <div className="p-4">
-                  <div className="mb-4 border-b">
-                    <div className="flex">
-                      <button 
-                        className={`py-2 px-4 ${chatApiTab === 'chat' 
-                          ? 'border-b-2 border-blue-500 font-medium text-blue-600' 
-                          : 'text-gray-500 hover:text-gray-700'}`}
-                        onClick={() => setChatApiTab('chat')}
-                      >
-                        Chat with Document
-                      </button>
-                      <button 
-                        className={`py-2 px-4 ${chatApiTab === 'api' 
-                          ? 'border-b-2 border-blue-500 font-medium text-blue-600' 
-                          : 'text-gray-500 hover:text-gray-700'}`}
-                        onClick={() => setChatApiTab('api')}
-                      >
-                        Extracted Data
-                      </button>
+            </div>
+            
+            {/* Tab Content */}
+            <div id="rightPanelContent" className="h-full overflow-y-auto">
+            {chatApiTab === 'chat' ? (
+              <ChatInterface
+                history={chatHistory}
+                onSendMessage={handleChatMessage}
+              />
+            ) : chatApiTab === 'api' ? (
+              <>
+                <APIResponseViewer data={processedData} />
+
+                {/* Extract evidence summary for current document */}
+                {currentFile && currentDocPage && processedData && (
+                  <div className="mt-4">
+                    <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">Highlighted Evidence</h3>
+                    <EvidenceSummary
+                      evidence={getCurrentPageEvidence(currentFile.name, currentDocPage)}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+  <div className="p-4 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+    <h3 className="text-md font-medium text-gray-900 dark:text-white mb-3">Document Template</h3>
+
+    {currentFile ? (
+      <div className="space-y-4">
+        <div className="border rounded-lg overflow-hidden bg-gray-100 p-4">
+          {/* SVG Templates based on document type */}
+          {(() => {
+            const templateType = getTemplateType(currentFile);
+
+            switch(templateType) {
+              case 'certificate':
+  return (
+    <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-3xl mx-auto text-sm relative overflow-hidden">
+      {/* Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none z-0">
+        <img 
+          src="/images/templates/company_logos.png"
+          alt="Watermark" 
+          className="w-full max-w-[700px] h-auto"
+        />
+       </div> 
+       {/* All other content should have z-10 to appear above watermark */}
+      <div className="relative z-10">
+      {/* Header with logo and company info */}
+      <div className="flex justify-between items-start">
+        <div className="w-32 h-16">
+          <img 
+            src="/images/templates/company_logos.png" 
+            alt="Company Logo" 
+            className="w-full h-full object-contain rounded-full"
+          />
+        </div>
+        <div className="text-right">
+          <h2 className="text-lg font-bold text-blue-900">BLUECOLLAR OCCUPATIONAL HEALTH</h2>
+          <p className="text-xs text-gray-600">Tel: +27 11 892 0771/ 011 892 0627</p>
+          <p className="text-xs text-gray-600">Email: admin@bluecollarocc.co.za</p>
+          <p className="text-xs text-gray-600">office@bluecollarocc.co.za</p>
+          <p className="text-xs text-gray-600">135 Leeuwpoort Street; Boksburg South; Boksburg</p>
+        </div>
+      </div>
+
+      {/* Certificate Title with dark blue background */}
+      <div className="bg-blue-900 text-white text-center py-2 mb-3">
+        <h1 className="text-xl font-bold">CERTIFICATE OF FITNESS</h1>
+      </div>
+
+      {/* Doctor info */}
+      <div className="text-center mb-3 text-xs">
+        <p className="font-semibold">Dr. MJ Mputhi / Practice No: 0404160 / Sr. Sibongile Mahlangu / Practice No: 999 088 0000 8177 91</p>
+        <p>certify that the following employee:</p>
+      </div>
+
+      {/* Employee Details */}
+      <div className="mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-2">
+          <div className="flex items-center">
+            <span className="font-semibold mr-2">Initials & Surname:</span>
+            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+          </div>
+          <div className="flex items-center">
+            <span className="font-semibold mr-2">ID NO:</span>
+            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+          </div>
+        </div>
+        
+        <div className="mb-2 flex items-center">
+          <span className="font-semibold mr-2">Company Name:</span>
+          <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 mb-2">
+          <div className="flex items-center">
+            <span className="font-semibold mr-2">Date of Examination:</span>
+            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+          </div>
+          <div className="flex items-center">
+            <span className="font-semibold mr-2">Expiry Date:</span>
+            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+          </div>
+        </div>
+        
+        <div className="mb-2 flex items-center">
+          <span className="font-semibold mr-2">Job Title:</span>
+          <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
+        </div>
+      </div>
+
+      {/* Examination Type - Reduced size */}
+      <div className="flex justify-center mb-2">
+        <table className="border-collapse w-1/2">
+          <tr>
+            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PRE-EMPLOYMENT</td>
+            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PERIODICAL</td>
+            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">EXIT</td>
+          </tr>
+          <tr>
+            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
+              <div className="text-sm">✓</div>
+            </td>
+            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
+              <div className="text-sm">&nbsp;</div>
+            </td>
+            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
+              <div className="text-sm">&nbsp;</div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      {/* Medical Examination Tests */}
+      <div className="bg-blue-900 text-white text-center py-1 mb-3">
+        <h3 className="font-bold text-sm">MEDICAL EXAMINATION CONDUCTED INCLUDES THE FOLLOWING TESTS</h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr>
+                <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
+                <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
+                <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">BLOODS</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">FAR, NEAR VISION</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">SIDE & DEPTH</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">NIGHT VISION</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div>
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr>
+                <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
+                <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
+                <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">Hearing</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">Working at Heights</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">Lung Function</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">X-Ray</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+              <tr>
+                <td className="border border-gray-400 p-1 font-semibold">Drug Screen</td>
+                <td className="border border-gray-400 p-1"></td>
+                <td className="border border-gray-400 p-1"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Referral and Review Date - More compact */}
+      <div className="grid grid-cols-2 text-xs">
+        <div className="border border-gray-400">
+          <div className="px-1 py-0.5">
+            <span className="font-semibold">Referred or follow up actions:</span>
+          </div>
+          <div className="h-2"></div>
+        </div>
+        <div className="border border-gray-400 border-l-0">
+          <div className="px-1 py-0.5">
+            <span className="font-semibold text-red-600">Review Date:</span>
+          </div>
+          <div className="h-2"></div>
+        </div>
+      </div>
+
+      {/* Restrictions - Reduced text size */}
+      <div className="bg-blue-900 text-white text-center py-1">
+        <h3 className="font-bold text-sm">Restrictions:</h3>
+      </div>
+
+      <table className="w-full border-collapse text-xs">
+        <tbody>
+          <tr>
+            <td className="border border-gray-400 p-2 text-center">Heights</td>
+            <td className="border border-gray-400 p-2 text-center">Dust Exposure</td>
+            <td className="border border-gray-400 p-2 text-center">Motorized Equipment</td>
+            <td className="border border-gray-400 p-2 text-center">Wear Hearing Protection</td>
+          </tr>
+          <tr>
+            <td className="border border-gray-400 p-2 text-center">Confined Spaces</td>
+            <td className="border border-gray-400 p-2 text-center">Chemical Exposure</td>
+            <td className="border border-gray-400 p-2 text-center">Wear Spectacles</td>
+            <td className="border border-gray-400 p-2 text-center">Remain on Treatment for Chronic Conditions</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Medical Fitness Declaration */}
+      <div className="bg-blue-900 text-white text-center py-1">
+        <h3 className="font-bold text-sm">Medical Fitness Declaration</h3>
+      </div>
+
+      <table className="w-full border-collapse">
+        <tbody>
+          <tr>
+            <td className="border-2 border-black p-2 text-center font-bold bg-green-200 text-sm">FIT</td>
+            <td className="border-2 border-black p-2 text-center text-sm">Fit with Restriction</td>
+            <td className="border-2 border-black p-2 text-center text-sm">Fit with Condition</td>
+            <td className="border-2 border-black p-2 text-center text-sm">Temporary Unfit</td>
+            <td className="border-2 border-black p-2 text-center text-sm">UNFIT</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Comments - Connected directly to the table above */}
+      <div className="border-2 border-black border-t-0">
+        <div className="p-2">
+          <span className="font-semibold text-sm">Comments:</span>
+          <div className="mt-2 space-y-6">
+            <div className="border-b border-gray-400"></div>
+            <div className="border-b border-gray-400"></div>
+            <div className="border-b border-gray-400"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Signature and Stamp with document details in between */}
+      <div className="grid grid-cols-3 gap-4 mt-4 items-end">
+        <div className="text-center">
+          <div className="border-b-2 border-gray-400 h-10"></div>
+          <p className="font-semibold mt-1">SIGNATURE</p>
+        </div>
+        
+        {/* Document details in the middle */}
+        <div className="text-center" style={{ fontSize: '10px' }}>
+          <p className="font-semibold">Occupational Health Practitioner / Occupational Medical Practitioner</p>
+          <p>Dr MJ Mphuthi / Practice No. 0404160</p>
+          <p>Sr. Sibongile Mahlangu</p>
+          <p>SANC No: 14262133; SASOHN No: AR 2136 / MBCHB DOH</p>
+          <p>Practice Number: 999 088 0000 8177 91</p>
+        </div>
+        
+        <div className="text-center">
+          <div className="border-2 border-gray-400 h-10"></div>
+          <p className="font-semibold mt-1">STAMP</p>
+        </div>
+      </div>
+      </div>
+    </div>
+  );
+
+  case 'questionnaire':
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">MEDICAL QUESTIONNAIRE</h1>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-sm">
+                          <div className="text-gray-500">Patient Name:</div>
+                          <div className="h-6 bg-gray-100 rounded"></div>
+                        </div>
+                        <div className="text-sm">
+                          <div className="text-gray-500">Date of Birth:</div>
+                          <div className="h-6 bg-gray-100 rounded"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  {chatApiTab === 'chat' ? (
-                    <ChatInterface 
-                      history={chatHistory} 
-                      onSendMessage={handleChatMessage} 
-                    />
-                  ) : (
-                    <>
-                      <APIResponseViewer data={processedData} />
-                      
-                      {/* Extract evidence summary for current document */}
-                      {currentFile && currentPage && processedData && (
-                        <div className="mt-4">
-                          <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">Highlighted Evidence</h3>
-                          <EvidenceSummary 
-                            evidence={getCurrentPageEvidence(currentFile.name, currentPage)} 
-                          />
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+                );
+
+              case 'audiogram':
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">AUDIOGRAM</h1>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="h-60 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-gray-400">Audiogram Chart</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+              case 'spirometer':
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">SPIROMETRY REPORT</h1>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="h-60 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-gray-400">Spirometry Graph</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+              case 'xray':
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">X-RAY REPORT</h1>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="h-60 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-gray-400">X-Ray Image</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+              case 'referral':
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">REFERRAL FORM</h1>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="text-sm">
+                        <div className="text-gray-500">Referring Doctor:</div>
+                        <div className="h-6 bg-gray-100 rounded"></div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="text-gray-500">Referred To:</div>
+                        <div className="h-6 bg-gray-100 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+              default:
+                return (
+                  <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-2xl mx-auto">
+                    <div className="text-center border-b pb-4 border-gray-200">
+                      <h1 className="text-2xl font-bold text-gray-800">DOCUMENT TEMPLATE</h1>
+                      <p className="mt-2 text-sm text-gray-500">Generic document template</p>
+                    </div>
+                    <div className="py-4 space-y-4">
+                      <div className="h-60 bg-gray-100 rounded flex items-center justify-center">
+                        <div className="text-gray-400">Document Content</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+            }
+          })()}
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-8 text-gray-500">
+        <p>Please select a document to view its template</p>
+      </div>
+    )}
+  </div>
+)}
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}    
     </MainLayout>
   );
 }

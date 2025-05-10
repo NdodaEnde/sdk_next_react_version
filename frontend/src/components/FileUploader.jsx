@@ -125,8 +125,16 @@ export default function FileUploader({ onUpload, loading: externalLoading }) {
         timerRef.current = null;
       }
       
+      // Add document type to the processed data
+      const enhancedData = {
+        ...data,
+        documentType: documentType
+      };
+      
+      console.log("Passing data with document type:", enhancedData);
+      
       // Pass the processed data to the parent component
-      onUpload(files, data);
+      onUpload(files, enhancedData);
       
       // Reset progress and status after a delay
       setTimeout(() => {
