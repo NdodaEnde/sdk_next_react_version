@@ -1,0 +1,417 @@
+import React from 'react';
+
+export default function CertificateTemplate({ data = {} }) {
+  // Extract data with fallbacks for all fields
+  const {
+    // Employee details
+    name = '',
+    id_number = '',
+    company = '',
+    exam_date = '',
+    expiry_date = '',
+    job = '',
+    
+    // Examination type
+    examination_type = '',
+    
+    // Medical exams with defaults
+    medical_exams = {
+      blood: false,
+      vision: false,
+      depthVision: false,
+      nightVision: false,
+      hearing: false,
+      heights: false,
+      lung: false,
+      xray: false,
+      drugScreen: false
+    },
+    
+    medical_results = {},
+    
+    // Fitness declaration
+    fitness_declaration = '',
+    
+    // Restrictions with defaults
+    restrictions = {
+      heights: false,
+      dust: false,
+      motorized: false,
+      hearingProtection: false,
+      confinedSpaces: false,
+      chemical: false,
+      spectacles: false,
+      treatment: false
+    },
+    
+    // Other fields
+    referral = '',
+    review_date = '',
+    comments = ''
+  } = data;
+
+  // Helper function to determine if a checkbox should be marked
+  const isChecked = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true' || 
+             value.toLowerCase() === 'yes' || 
+             value.toLowerCase() === 'checked';
+    }
+    return false;
+  };
+
+  // Helper function to determine active fitness declaration
+  const isFitnessDeclared = (type) => {
+    return fitness_declaration === type;
+  };
+
+  return (
+    <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-3xl mx-auto text-sm relative overflow-hidden">
+      {/* Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none z-0">
+        <img 
+          src="/images/templates/company_logos.png"
+          alt="Watermark" 
+          className="w-full max-w-[700px] h-auto"
+        />
+      </div> 
+      
+      {/* All other content should have z-10 to appear above watermark */}
+      <div className="relative z-10">
+        {/* Header with logo and company info */}
+        <div className="flex justify-between items-start">
+          <div className="w-32 h-16">
+            <img 
+              src="/images/templates/company_logos.png" 
+              alt="Company Logo" 
+              className="ww-full h-full object-contain opacity-100"
+            />
+          </div>
+          <div className="text-right">
+            <h2 className="text-lg font-bold text-blue-900">BLUECOLLAR OCCUPATIONAL HEALTH</h2>
+            <p className="text-xs text-gray-600">Tel: +27 11 892 0771/ 011 892 0627</p>
+            <p className="text-xs text-gray-600">Email: admin@bluecollarocc.co.za</p>
+            <p className="text-xs text-gray-600">office@bluecollarocc.co.za</p>
+            <p className="text-xs text-gray-600">135 Leeuwpoort Street; Boksburg South; Boksburg</p>
+          </div>
+        </div>
+
+        {/* Certificate Title with dark blue background */}
+        <div className="bg-blue-900 text-white text-center py-2 mb-3">
+          <h1 className="text-xl font-bold">CERTIFICATE OF FITNESS</h1>
+        </div>
+
+        {/* Doctor info */}
+        <div className="text-center mb-3 text-xs">
+          <p className="font-semibold">Dr. MJ Mputhi / Practice No: 0404160 / Sr. Sibongile Mahlangu / Practice No: 999 088 0000 8177 91</p>
+          <p>certify that the following employee:</p>
+        </div>
+
+        {/* Employee Details */}
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-4 mb-2">
+            <div className="flex items-center">
+              <span className="font-semibold mr-2">Initials & Surname:</span>
+              <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${name ? 'bg-blue-50' : ''}`}>
+                {name && <span className="px-1">{name}</span>}
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold mr-2">ID NO:</span>
+              <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${id_number ? 'bg-blue-50' : ''}`}>
+                {id_number && <span className="px-1">{id_number}</span>}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mb-2 flex items-center">
+            <span className="font-semibold mr-2">Company Name:</span>
+            <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${company ? 'bg-blue-50' : ''}`}>
+              {company && <span className="px-1">{company}</span>}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-2">
+            <div className="flex items-center">
+              <span className="font-semibold mr-2">Date of Examination:</span>
+              <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${exam_date ? 'bg-blue-50' : ''}`}>
+                {exam_date && <span className="px-1">{exam_date}</span>}
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="font-semibold mr-2">Expiry Date:</span>
+              <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${expiry_date ? 'bg-blue-50' : ''}`}>
+                {expiry_date && <span className="px-1">{expiry_date}</span>}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mb-2 flex items-center">
+            <span className="font-semibold mr-2">Job Title:</span>
+            <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${job ? 'bg-blue-50' : ''}`}>
+              {job && <span className="px-1">{job}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Examination Type - Reduced size */}
+        <div className="flex justify-center mb-2">
+          <table className="border-collapse w-1/2">
+            <tbody>
+              <tr>
+                <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PRE-EMPLOYMENT</td>
+                <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PERIODICAL</td>
+                <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">EXIT</td>
+              </tr>
+              <tr>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'pre-employment' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{examination_type === 'pre-employment' ? '✓' : ''}</div>
+                </td>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'periodical' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{examination_type === 'periodical' ? '✓' : ''}</div>
+                </td>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'exit' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{examination_type === 'exit' ? '✓' : ''}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Medical Examination Tests */}
+        <div className="bg-blue-900 text-white text-center py-1 mb-3">
+          <h3 className="font-bold text-sm">MEDICAL EXAMINATION CONDUCTED INCLUDES THE FOLLOWING TESTS</h3>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr>
+                  <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
+                  <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
+                  <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">BLOODS</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.blood) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.blood) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.blood || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">FAR, NEAR VISION</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.vision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.vision) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.vision || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">SIDE & DEPTH</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.depthVision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.depthVision) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.depthVision || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">NIGHT VISION</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.nightVision) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.nightVision) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.nightVision || ''}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div>
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr>
+                  <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
+                  <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
+                  <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">Hearing</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.hearing) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.hearing) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.hearing || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">Working at Heights</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.heights) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.heights) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.heights || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">Lung Function</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.lung) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.lung) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.lung || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">X-Ray</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.xray) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.xray) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.xray || ''}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="border border-gray-400 p-1 font-semibold">Drug Screen</td>
+                  <td className={`border border-gray-400 p-1 text-center ${isChecked(medical_exams.drugScreen) ? 'bg-blue-50' : ''}`}>
+                    {isChecked(medical_exams.drugScreen) ? '✓' : ''}
+                  </td>
+                  <td className="border border-gray-400 p-1">
+                    {medical_results.drugScreen || ''}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Referral and Review Date - More compact */}
+        <div className="grid grid-cols-2 text-xs">
+          <div className="border border-gray-400">
+            <div className="px-1 py-0.5">
+              <span className="font-semibold">Referred or follow up actions:</span>
+            </div>
+            <div className={`px-1 pb-1 ${referral ? 'bg-blue-50' : ''}`}>
+              {referral || ''}
+            </div>
+          </div>
+          <div className="border border-gray-400 border-l-0">
+            <div className="px-1 py-0.5">
+              <span className="font-semibold text-red-600">Review Date:</span>
+            </div>
+            <div className={`px-1 pb-1 ${review_date ? 'bg-blue-50' : ''}`}>
+              {review_date || ''}
+            </div>
+          </div>
+        </div>
+
+        {/* Restrictions - Reduced text size */}
+        <div className="bg-blue-900 text-white text-center py-1">
+          <h3 className="font-bold text-sm">Restrictions:</h3>
+        </div>
+
+        <table className="w-full border-collapse text-xs">
+          <tbody>
+            <tr>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.heights) ? 'bg-blue-100' : ''}`}>
+                Heights {isChecked(restrictions.heights) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.dust) ? 'bg-blue-100' : ''}`}>
+                Dust Exposure {isChecked(restrictions.dust) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.motorized) ? 'bg-blue-100' : ''}`}>
+                Motorized Equipment {isChecked(restrictions.motorized) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.hearingProtection) ? 'bg-blue-100' : ''}`}>
+                Wear Hearing Protection {isChecked(restrictions.hearingProtection) ? '✓' : ''}
+              </td>
+            </tr>
+            <tr>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.confinedSpaces) ? 'bg-blue-100' : ''}`}>
+                Confined Spaces {isChecked(restrictions.confinedSpaces) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.chemical) ? 'bg-blue-100' : ''}`}>
+                Chemical Exposure {isChecked(restrictions.chemical) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.spectacles) ? 'bg-blue-100' : ''}`}>
+                Wear Spectacles {isChecked(restrictions.spectacles) ? '✓' : ''}
+              </td>
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(restrictions.treatment) ? 'bg-blue-100' : ''}`}>
+                Remain on Treatment for Chronic Conditions {isChecked(restrictions.treatment) ? '✓' : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Medical Fitness Declaration */}
+        <div className="bg-blue-900 text-white text-center py-1">
+          <h3 className="font-bold text-sm">Medical Fitness Declaration</h3>
+        </div>
+
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className={`border-2 border-black p-2 text-center font-bold text-sm ${isFitnessDeclared('fit') ? 'bg-green-200' : ''}`}>
+                FIT {isFitnessDeclared('fit') ? '✓' : ''}
+              </td>
+              <td className={`border-2 border-black p-2 text-center text-sm ${isFitnessDeclared('fitWithRestriction') ? 'bg-yellow-100' : ''}`}>
+                Fit with Restriction {isFitnessDeclared('fitWithRestriction') ? '✓' : ''}
+              </td>
+              <td className={`border-2 border-black p-2 text-center text-sm ${isFitnessDeclared('fitWithCondition') ? 'bg-yellow-100' : ''}`}>
+                Fit with Condition {isFitnessDeclared('fitWithCondition') ? '✓' : ''}
+              </td>
+              <td className={`border-2 border-black p-2 text-center text-sm ${isFitnessDeclared('temporaryUnfit') ? 'bg-red-100' : ''}`}>
+                Temporary Unfit {isFitnessDeclared('temporaryUnfit') ? '✓' : ''}
+              </td>
+              <td className={`border-2 border-black p-2 text-center text-sm ${isFitnessDeclared('unfit') ? 'bg-red-200' : ''}`}>
+                UNFIT {isFitnessDeclared('unfit') ? '✓' : ''}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Comments - Connected directly to the table above */}
+        <div className="border-2 border-black border-t-0">
+          <div className="p-2">
+            <span className="font-semibold text-sm">Comments:</span>
+            <div className={`mt-2 space-y-6 p-1 ${comments ? 'bg-blue-50' : ''}`}>
+              {comments || ''}
+            </div>
+          </div>
+        </div>
+
+        {/* Signature and Stamp with document details in between */}
+        <div className="grid grid-cols-3 gap-4 mt-4 items-end">
+          <div className="text-center">
+            <div className="border-b-2 border-gray-400 h-10"></div>
+            <p className="font-semibold mt-1">SIGNATURE</p>
+          </div>
+          
+          {/* Document details in the middle */}
+          <div className="text-center" style={{ fontSize: '10px' }}>
+            <p className="font-semibold">Occupational Health Practitioner / Occupational Medical Practitioner</p>
+            <p>Dr MJ Mphuthi / Practice No. 0404160</p>
+            <p>Sr. Sibongile Mahlangu</p>
+            <p>SANC No: 14262133; SASOHN No: AR 2136 / MBCHB DOH</p>
+            <p>Practice Number: 999 088 0000 8177 91</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="border-2 border-gray-400 h-10"></div>
+            <p className="font-semibold mt-1">STAMP</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

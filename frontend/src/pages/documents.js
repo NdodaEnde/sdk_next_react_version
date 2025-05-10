@@ -6,6 +6,9 @@ import DocumentViewer from '../components/DocumentViewer';
 import ChatInterface from '../components/ChatInterface';
 import APIResponseViewer from '../components/APIResponseViewer';
 import EvidenceSummary from '../components/EvidenceSummary';
+import CertificateTemplate from '../components/templates/CertificateTemplate';
+import { extractDocumentData, mapToCertificateFields } from '../utils/dataExtractor';
+import { mockEvidenceData, sampleCertificateData } from '../utils/sampleData';
 
 export default function Documents() {
   const router = useRouter();
@@ -143,6 +146,9 @@ export default function Documents() {
   const [currentPage, setCurrentPage] = useState(1); // For pagination
   const [itemsPerPage] = useState(6);
 
+  // State for template data population
+  const [extractedTemplateData, setExtractedTemplateData] = useState(null);
+
   // Filter documents by categories (mock data)
   const documentCategories = [
     { id: 'all', name: 'All Documents' },
@@ -262,16 +268,16 @@ export default function Documents() {
   // Update the handleFileUploadComplete function
 const handleFileUploadComplete = (files, data) => {
   setUploadedFiles(files);
-  
+
   // Set the first file as the current file
   if (files && files.length > 0) {
     setCurrentFile(files[0]);
   }
-  
+
   // Store the document type if it was passed from the FileUploader
   if (data && data.documentType) {
     console.log("Document type from upload:", data.documentType);
-    
+
     // Store the document type correctly
     setProcessedData({
       ...data,
@@ -280,13 +286,16 @@ const handleFileUploadComplete = (files, data) => {
   } else {
     setProcessedData(data);
   }
-  
+
+  // Reset any previously extracted template data
+  setExtractedTemplateData(null);
+
   setShowUploader(false);
-  
+
   console.log("Uploaded files:", files);
   console.log("Processed data:", data);
   console.log("Current file set to:", files[0]); // Debug log
-  
+
   // Initialize chat with a welcome message
   setChatHistory([{
     role: 'assistant',
@@ -608,6 +617,37 @@ const handleFileUploadComplete = (files, data) => {
       </div>
     </div>
   );
+
+  // Function to extract and populate certificate data from the evidence
+  const extractAndPopulateTemplateData = () => {
+    if (!currentFile || !processedData || !processedData.evidence) {
+      alert('No document data available for extraction');
+      return;
+    }
+
+    // Get the type of document to ensure correct template mapping
+    const docType = getTemplateType(currentFile);
+
+    // Process document data
+    try {
+      // Extract structured data from OCR output
+      const extractedData = extractDocumentData(processedData.evidence, docType);
+      console.log('Extracted document data:', extractedData);
+
+      // Map the extracted data to certificate fields
+      const certificateData = mapToCertificateFields(extractedData);
+      console.log('Mapped certificate data:', certificateData);
+
+      // Update state with the template data
+      setExtractedTemplateData(certificateData);
+
+      // Switch to template tab to show the populated template
+      setChatApiTab('template');
+    } catch (error) {
+      console.error('Error processing document data:', error);
+      alert('Failed to extract certificate data: ' + error.message);
+    }
+  };
 
   // Render document list item
   const renderDocumentListItem = (doc) => (
@@ -1143,281 +1183,74 @@ const handleFileUploadComplete = (files, data) => {
     {currentFile ? (
       <div className="space-y-4">
         <div className="border rounded-lg overflow-hidden bg-gray-100 p-4">
+          {/* Template Population Controls */}
+          <div className="bg-white p-3 mb-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <h4 className="text-md font-medium text-gray-900">Certificate Data Population</h4>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => extractAndPopulateTemplateData()}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Extract & Populate Data
+                </button>
+                <button
+                  onClick={() => {
+                    // Load sample evidence data for testing
+                    if (process.env.NODE_ENV !== 'production') {
+                      console.log('Loading sample data for testing');
+
+                      // If no processed data exists yet, create it
+                      if (!processedData) {
+                        setProcessedData({
+                          evidence: mockEvidenceData
+                        });
+                      } else {
+                        // Otherwise just add the evidence to existing data
+                        setProcessedData({
+                          ...processedData,
+                          evidence: mockEvidenceData
+                        });
+                      }
+
+                      // Load the sample certificate data
+                      setExtractedTemplateData(sampleCertificateData);
+                      setChatApiTab('template');
+                    } else {
+                      alert('Test data is only available in development mode');
+                    }
+                  }}
+                  className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
+                >
+                  Load Test Data
+                </button>
+              </div>
+            </div>
+            {extractedTemplateData && (
+              <div className="mt-2 text-xs text-gray-600">
+                <div className="flex items-center">
+                  <span className="w-24">Patient:</span>
+                  <span className="font-medium">{extractedTemplateData.name || 'Not detected'}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-24">ID Number:</span>
+                  <span className="font-medium">{extractedTemplateData.id_number || 'Not detected'}</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="w-24">Company:</span>
+                  <span className="font-medium">{extractedTemplateData.company || 'Not detected'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* SVG Templates based on document type */}
           {(() => {
             const templateType = getTemplateType(currentFile);
 
             switch(templateType) {
               case 'certificate':
-  return (
-    <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-3xl mx-auto text-sm relative overflow-hidden">
-      {/* Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none z-0">
-        <img 
-          src="/images/templates/company_logos.png"
-          alt="Watermark" 
-          className="w-full max-w-[700px] h-auto"
-        />
-       </div> 
-       {/* All other content should have z-10 to appear above watermark */}
-      <div className="relative z-10">
-      {/* Header with logo and company info */}
-      <div className="flex justify-between items-start">
-        <div className="w-32 h-16">
-          <img 
-            src="/images/templates/company_logos.png" 
-            alt="Company Logo" 
-            className="w-full h-full object-contain rounded-full"
-          />
-        </div>
-        <div className="text-right">
-          <h2 className="text-lg font-bold text-blue-900">BLUECOLLAR OCCUPATIONAL HEALTH</h2>
-          <p className="text-xs text-gray-600">Tel: +27 11 892 0771/ 011 892 0627</p>
-          <p className="text-xs text-gray-600">Email: admin@bluecollarocc.co.za</p>
-          <p className="text-xs text-gray-600">office@bluecollarocc.co.za</p>
-          <p className="text-xs text-gray-600">135 Leeuwpoort Street; Boksburg South; Boksburg</p>
-        </div>
-      </div>
-
-      {/* Certificate Title with dark blue background */}
-      <div className="bg-blue-900 text-white text-center py-2 mb-3">
-        <h1 className="text-xl font-bold">CERTIFICATE OF FITNESS</h1>
-      </div>
-
-      {/* Doctor info */}
-      <div className="text-center mb-3 text-xs">
-        <p className="font-semibold">Dr. MJ Mputhi / Practice No: 0404160 / Sr. Sibongile Mahlangu / Practice No: 999 088 0000 8177 91</p>
-        <p>certify that the following employee:</p>
-      </div>
-
-      {/* Employee Details */}
-      <div className="mb-4">
-        <div className="grid grid-cols-2 gap-4 mb-2">
-          <div className="flex items-center">
-            <span className="font-semibold mr-2">Initials & Surname:</span>
-            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-          </div>
-          <div className="flex items-center">
-            <span className="font-semibold mr-2">ID NO:</span>
-            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-          </div>
-        </div>
-        
-        <div className="mb-2 flex items-center">
-          <span className="font-semibold mr-2">Company Name:</span>
-          <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4 mb-2">
-          <div className="flex items-center">
-            <span className="font-semibold mr-2">Date of Examination:</span>
-            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-          </div>
-          <div className="flex items-center">
-            <span className="font-semibold mr-2">Expiry Date:</span>
-            <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-          </div>
-        </div>
-        
-        <div className="mb-2 flex items-center">
-          <span className="font-semibold mr-2">Job Title:</span>
-          <div className="flex-1 border-b-2 border-gray-400 h-5"></div>
-        </div>
-      </div>
-
-      {/* Examination Type - Reduced size */}
-      <div className="flex justify-center mb-2">
-        <table className="border-collapse w-1/2">
-          <tr>
-            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PRE-EMPLOYMENT</td>
-            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">PERIODICAL</td>
-            <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">EXIT</td>
-          </tr>
-          <tr>
-            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
-              <div className="text-sm">✓</div>
-            </td>
-            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
-              <div className="text-sm">&nbsp;</div>
-            </td>
-            <td className="border-2 border-black border-t-0 px-2 py-0.5 text-center">
-              <div className="text-sm">&nbsp;</div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      {/* Medical Examination Tests */}
-      <div className="bg-blue-900 text-white text-center py-1 mb-3">
-        <h3 className="font-bold text-sm">MEDICAL EXAMINATION CONDUCTED INCLUDES THE FOLLOWING TESTS</h3>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr>
-                <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
-                <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
-                <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">BLOODS</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">FAR, NEAR VISION</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">SIDE & DEPTH</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">NIGHT VISION</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        
-        <div>
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr>
-                <th className="border border-gray-400 p-1 bg-blue-100" rowSpan="2"></th>
-                <th className="border border-gray-400 p-1 bg-blue-100">Done</th>
-                <th className="border border-gray-400 p-1 bg-blue-100">Results</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">Hearing</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">Working at Heights</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">Lung Function</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">X-Ray</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-              <tr>
-                <td className="border border-gray-400 p-1 font-semibold">Drug Screen</td>
-                <td className="border border-gray-400 p-1"></td>
-                <td className="border border-gray-400 p-1"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Referral and Review Date - More compact */}
-      <div className="grid grid-cols-2 text-xs">
-        <div className="border border-gray-400">
-          <div className="px-1 py-0.5">
-            <span className="font-semibold">Referred or follow up actions:</span>
-          </div>
-          <div className="h-2"></div>
-        </div>
-        <div className="border border-gray-400 border-l-0">
-          <div className="px-1 py-0.5">
-            <span className="font-semibold text-red-600">Review Date:</span>
-          </div>
-          <div className="h-2"></div>
-        </div>
-      </div>
-
-      {/* Restrictions - Reduced text size */}
-      <div className="bg-blue-900 text-white text-center py-1">
-        <h3 className="font-bold text-sm">Restrictions:</h3>
-      </div>
-
-      <table className="w-full border-collapse text-xs">
-        <tbody>
-          <tr>
-            <td className="border border-gray-400 p-2 text-center">Heights</td>
-            <td className="border border-gray-400 p-2 text-center">Dust Exposure</td>
-            <td className="border border-gray-400 p-2 text-center">Motorized Equipment</td>
-            <td className="border border-gray-400 p-2 text-center">Wear Hearing Protection</td>
-          </tr>
-          <tr>
-            <td className="border border-gray-400 p-2 text-center">Confined Spaces</td>
-            <td className="border border-gray-400 p-2 text-center">Chemical Exposure</td>
-            <td className="border border-gray-400 p-2 text-center">Wear Spectacles</td>
-            <td className="border border-gray-400 p-2 text-center">Remain on Treatment for Chronic Conditions</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Medical Fitness Declaration */}
-      <div className="bg-blue-900 text-white text-center py-1">
-        <h3 className="font-bold text-sm">Medical Fitness Declaration</h3>
-      </div>
-
-      <table className="w-full border-collapse">
-        <tbody>
-          <tr>
-            <td className="border-2 border-black p-2 text-center font-bold bg-green-200 text-sm">FIT</td>
-            <td className="border-2 border-black p-2 text-center text-sm">Fit with Restriction</td>
-            <td className="border-2 border-black p-2 text-center text-sm">Fit with Condition</td>
-            <td className="border-2 border-black p-2 text-center text-sm">Temporary Unfit</td>
-            <td className="border-2 border-black p-2 text-center text-sm">UNFIT</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Comments - Connected directly to the table above */}
-      <div className="border-2 border-black border-t-0">
-        <div className="p-2">
-          <span className="font-semibold text-sm">Comments:</span>
-          <div className="mt-2 space-y-6">
-            <div className="border-b border-gray-400"></div>
-            <div className="border-b border-gray-400"></div>
-            <div className="border-b border-gray-400"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Signature and Stamp with document details in between */}
-      <div className="grid grid-cols-3 gap-4 mt-4 items-end">
-        <div className="text-center">
-          <div className="border-b-2 border-gray-400 h-10"></div>
-          <p className="font-semibold mt-1">SIGNATURE</p>
-        </div>
-        
-        {/* Document details in the middle */}
-        <div className="text-center" style={{ fontSize: '10px' }}>
-          <p className="font-semibold">Occupational Health Practitioner / Occupational Medical Practitioner</p>
-          <p>Dr MJ Mphuthi / Practice No. 0404160</p>
-          <p>Sr. Sibongile Mahlangu</p>
-          <p>SANC No: 14262133; SASOHN No: AR 2136 / MBCHB DOH</p>
-          <p>Practice Number: 999 088 0000 8177 91</p>
-        </div>
-        
-        <div className="text-center">
-          <div className="border-2 border-gray-400 h-10"></div>
-          <p className="font-semibold mt-1">STAMP</p>
-        </div>
-      </div>
-      </div>
-    </div>
-  );
+                return <CertificateTemplate data={extractedTemplateData} />;
 
   case 'questionnaire':
                 return (
