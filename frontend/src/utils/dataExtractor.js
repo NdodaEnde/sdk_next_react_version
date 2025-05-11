@@ -95,134 +95,135 @@ export function extractDocumentData(evidence, documentType) {
 function processMarkdownContent(markdown, extractedData) {
   if (!markdown) return;
 
-  // Process document details section - handle both markdown formats
+  // Process document details section - handle different markdown formats
   if (markdown.includes('## Document Details') ||
       markdown.includes('**Initials & Surname**') ||
-      markdown.includes('T.A. Nkosi')) {
+      markdown.includes('ID NO') ||
+      markdown.includes('Patient Name')) {
 
     console.log('Processing document details from markdown:', markdown.substring(0, 300) + '...');
 
-    // Try different regex patterns for each field
-    // Name
+    // Use more generic patterns that will work with any data, not hardcoded values
+
+    // Name - look for patterns like "Initials & Surname: [value]" or list items with name info
     const namePatterns = [
-      /\*\*Initials & Surname\*\*:\s*([^\n]+)/,
+      /\*\*Initials & Surname\*\*:\s*([^\n]+)/i,
       /Initials & Surname[:\s]+([^\n]+)/i,
       /Surname[:\s]+([^\n]+)/i,
-      /T\.A\. Nkosi/
+      /Patient Name[:\s]+([^\n]+)/i,
+      /Name[:\s]+([^\n]+)/i,
+      /\*\*Name\*\*:\s*([^\n]+)/i,
+      // Look for a line with name-like pattern
+      /-\s+[^:]+:\s*([A-Z][\.a-zA-Z\s]+)/i
     ];
 
     for (const pattern of namePatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.name = match[1].trim();
-        } else if (match[0] === "T.A. Nkosi") {
-          extractedData.fields.name = "T.A. Nkosi";
-        }
+      if (match && match[1]) {
+        extractedData.fields.name = match[1].trim();
         console.log('Found name:', extractedData.fields.name);
         break;
       }
     }
 
-    // ID Number
+    // ID Number - look for various formats of ID fields
     const idPatterns = [
-      /\*\*ID NO\*\*:\s*([^\n]+)/,
+      /\*\*ID NO\*\*:\s*([^\n]+)/i,
       /ID NO[:\s]+([^\n]+)/i,
       /ID Number[:\s]+([^\n]+)/i,
-      /900304 5496 084/
+      /ID[:\s]+([^\n]+)/i,
+      /\*\*ID\*\*:\s*([^\n]+)/i,
+      // Also try to find ID-like number patterns
+      /(\d{6}\s*\d{4}\s*\d{3})/
     ];
 
     for (const pattern of idPatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.id_number = match[1].trim();
-        } else if (match[0] === "900304 5496 084") {
-          extractedData.fields.id_number = "900304 5496 084";
-        }
+      if (match && match[1]) {
+        extractedData.fields.id_number = match[1].trim();
         console.log('Found ID number:', extractedData.fields.id_number);
         break;
       }
     }
 
-    // Company
+    // Company - various ways to refer to company/employer
     const companyPatterns = [
-      /\*\*Company Name\*\*:\s*([^\n]+)/,
+      /\*\*Company Name\*\*:\s*([^\n]+)/i,
       /Company Name[:\s]+([^\n]+)/i,
       /Company[:\s]+([^\n]+)/i,
-      /Bluecollar Occ Health/
+      /Employer[:\s]+([^\n]+)/i,
+      /\*\*Employer\*\*:\s*([^\n]+)/i,
+      /Organization[:\s]+([^\n]+)/i
     ];
 
     for (const pattern of companyPatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.company = match[1].trim();
-        } else if (match[0] === "Bluecollar Occ Health") {
-          extractedData.fields.company = "Bluecollar Occ Health";
-        }
+      if (match && match[1]) {
+        extractedData.fields.company = match[1].trim();
         console.log('Found company:', extractedData.fields.company);
         break;
       }
     }
 
-    // Exam Date
+    // Exam Date - look for various date formats and labels
     const examDatePatterns = [
-      /\*\*Date of Examination\*\*:\s*([^\n]+)/,
+      /\*\*Date of Examination\*\*:\s*([^\n]+)/i,
       /Date of Examination[:\s]+([^\n]+)/i,
       /Examination Date[:\s]+([^\n]+)/i,
-      /26-02-2015/
+      /Exam Date[:\s]+([^\n]+)/i,
+      /\*\*Exam Date\*\*:\s*([^\n]+)/i,
+      // Generic date format patterns (if we can't find labeled dates)
+      /(\d{2}[-\/]\d{2}[-\/]\d{4})/,  // DD-MM-YYYY or DD/MM/YYYY
+      /(\d{4}[-\/]\d{2}[-\/]\d{2})/   // YYYY-MM-DD or YYYY/MM/DD
     ];
 
     for (const pattern of examDatePatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.exam_date = match[1].trim();
-        } else if (match[0] === "26-02-2015") {
-          extractedData.fields.exam_date = "26-02-2015";
-        }
+      if (match && match[1]) {
+        extractedData.fields.exam_date = match[1].trim();
         console.log('Found exam date:', extractedData.fields.exam_date);
         break;
       }
     }
 
-    // Expiry Date
+    // Expiry Date - look for various formats and labels
     const expiryDatePatterns = [
-      /\*\*Expiry Date\*\*:\s*([^\n]+)/,
+      /\*\*Expiry Date\*\*:\s*([^\n]+)/i,
       /Expiry Date[:\s]+([^\n]+)/i,
-      /26-02-2016/
+      /Expiration Date[:\s]+([^\n]+)/i,
+      /Expires On[:\s]+([^\n]+)/i,
+      /Valid Until[:\s]+([^\n]+)/i
     ];
 
     for (const pattern of expiryDatePatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.expiry_date = match[1].trim();
-        } else if (match[0] === "26-02-2016") {
-          extractedData.fields.expiry_date = "26-02-2016";
-        }
+      if (match && match[1]) {
+        extractedData.fields.expiry_date = match[1].trim();
         console.log('Found expiry date:', extractedData.fields.expiry_date);
         break;
       }
     }
   }
 
-  // Process job title
-  if (markdown.includes('## Job Title') || markdown.includes('Technician')) {
+  // Process job title - more generic patterns
+  if (markdown.includes('## Job Title') || markdown.includes('Job Title') || markdown.includes('Occupation') || markdown.includes('Position')) {
+    console.log('Processing job title from markdown');
+
     const jobPatterns = [
-      /Job Title:\s*([^\n]+)/,
-      /Technician/
+      /Job Title:\s*([^\n]+)/i,
+      /\*\*Job Title\*\*:\s*([^\n]+)/i,
+      /Job Title[:\s]+([^\n]+)/i,
+      /Occupation[:\s]+([^\n]+)/i,
+      /Position[:\s]+([^\n]+)/i,
+      /\*\*Position\*\*:\s*([^\n]+)/i,
+      // Look for bullet point with job title
+      /-\s+Job Title[:\s]+([^\n]+)/i
     ];
 
     for (const pattern of jobPatterns) {
       const match = markdown.match(pattern);
-      if (match) {
-        if (match[1]) {
-          extractedData.fields.job = match[1].trim();
-        } else if (match[0] === "Technician") {
-          extractedData.fields.job = "Technician";
-        }
+      if (match && match[1]) {
+        extractedData.fields.job = match[1].trim();
         console.log('Found job title:', extractedData.fields.job);
         break;
       }
@@ -346,50 +347,78 @@ function processMarkdownContent(markdown, extractedData) {
       }
     }
 
-    // Hardcoded fixes for the specific example in the provided markdown
-    if (markdown.includes('BLOODS') && markdown.includes('[x]') && markdown.includes('N/A')) {
-      extractedData.checkboxes.medicalExams.blood = true;
-      extractedData.checkboxes.medicalResults.blood = 'N/A';
+    // Use more general pattern matching to find medical exam results
+    // Parse the markdown to look for table-like structures with tests and results
+
+    // Try to find test results in markdown tables (both pipe format and HTML-like format)
+    const tablePattern = /```(html)?\s*<table>[\s\S]*?<\/table>\s*```/g;
+    const tableMatches = markdown.match(tablePattern);
+
+    if (tableMatches) {
+      console.log('Found table structures in markdown');
+
+      for (const tableMatch of tableMatches) {
+        // For each table, look for rows with test info
+        const testRowPattern = /<td>([^<]+)<\/td>\s*<td>\[x\]<\/td>\s*<td>([^<]+)<\/td>/g;
+        let testRow;
+
+        while ((testRow = testRowPattern.exec(tableMatch)) !== null) {
+          if (testRow.length >= 3) {
+            const testName = testRow[1].trim();
+            const resultValue = testRow[2].trim();
+
+            // Find the matching field for this test
+            for (const [key, field] of Object.entries(medicalTests)) {
+              if (testName.includes(key)) {
+                extractedData.checkboxes.medicalExams[field] = true;
+                extractedData.checkboxes.medicalResults[field] = resultValue;
+                console.log(`Found test result in table for ${field}: ${resultValue}`);
+                break;
+              }
+            }
+          }
+        }
+      }
     }
 
-    if (markdown.includes('FAR, NEAR VISION') && markdown.includes('[x]') && markdown.includes('20/30')) {
-      extractedData.checkboxes.medicalExams.vision = true;
-      extractedData.checkboxes.medicalResults.vision = '20/30';
-    }
+    // Also look for test results in plain text format
+    for (const [test, field] of Object.entries(medicalTests)) {
+      // Find patterns like "TEST | [x] | RESULT" or "TEST    [x]    RESULT"
+      const patterns = [
+        new RegExp(`${test}\\s*\\|\\s*\\[x\\]\\s*\\|\\s*([\\w\\/\\s\\.\\%]+)`, 'i'),
+        new RegExp(`${test}\\s+\\[x\\]\\s+([\\w\\/\\s\\.\\%]+)`, 'i')
+      ];
 
-    if (markdown.includes('SIDE & DEPTH') && markdown.includes('[x]') && markdown.includes('Normal')) {
-      extractedData.checkboxes.medicalExams.depthVision = true;
-      extractedData.checkboxes.medicalResults.depthVision = 'Normal';
-    }
+      for (const pattern of patterns) {
+        const match = markdown.match(pattern);
+        if (match && match[1]) {
+          extractedData.checkboxes.medicalExams[field] = true;
+          extractedData.checkboxes.medicalResults[field] = match[1].trim();
+          console.log(`Found test result with pattern matching for ${field}: ${match[1].trim()}`);
+          break;
+        }
+      }
 
-    if (markdown.includes('NIGHT VISION') && markdown.includes('[x]') && markdown.includes('20/30')) {
-      extractedData.checkboxes.medicalExams.nightVision = true;
-      extractedData.checkboxes.medicalResults.nightVision = '20/30';
-    }
+      // Also check for general mentions of test with result nearby
+      if (markdown.includes(test) && markdown.includes('[x]')) {
+        // Look for common result patterns near the test
+        const resultPatterns = [
+          // Look for test name and result nearby
+          new RegExp(`${test}[^\\n]*?\\[x\\][^\\n]*?([\\w\\/\\%\\.\\s,]+)`, 's'),
+          // Look for N/A, Normal, values like 20/30, etc.
+          new RegExp(`${test}[^\\n]*?\\[x\\][^\\n]*?(N\\/A|Normal|\\d+\\/\\d+|\\d+\\.\\d+|Mild\\s+[\\w\\s]+)`, 's')
+        ];
 
-    if (markdown.includes('Hearing') && markdown.includes('[x]') && markdown.includes('3.4')) {
-      extractedData.checkboxes.medicalExams.hearing = true;
-      extractedData.checkboxes.medicalResults.hearing = '3.4';
-    }
-
-    if (markdown.includes('Working at Heights') && markdown.includes('[x]') && markdown.includes('N/A')) {
-      extractedData.checkboxes.medicalExams.heights = true;
-      extractedData.checkboxes.medicalResults.heights = 'N/A';
-    }
-
-    if (markdown.includes('Lung Function') && markdown.includes('[x]') && markdown.includes('Mild Restriction')) {
-      extractedData.checkboxes.medicalExams.lung = true;
-      extractedData.checkboxes.medicalResults.lung = 'Mild Restriction';
-    }
-
-    if (markdown.includes('X-Ray') && markdown.includes('[x]') && markdown.includes('N/A')) {
-      extractedData.checkboxes.medicalExams.xray = true;
-      extractedData.checkboxes.medicalResults.xray = 'N/A';
-    }
-
-    if (markdown.includes('Drug Screen') && markdown.includes('[x]') && markdown.includes('N/A')) {
-      extractedData.checkboxes.medicalExams.drugScreen = true;
-      extractedData.checkboxes.medicalResults.drugScreen = 'N/A';
+        for (const pattern of resultPatterns) {
+          const match = markdown.match(pattern);
+          if (match && match[1] && !extractedData.checkboxes.medicalResults[field]) {
+            extractedData.checkboxes.medicalExams[field] = true;
+            extractedData.checkboxes.medicalResults[field] = match[1].trim();
+            console.log(`Found test result with contextual pattern for ${field}: ${match[1].trim()}`);
+            break;
+          }
+        }
+      }
     }
   }
 
