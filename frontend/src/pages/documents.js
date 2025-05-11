@@ -620,16 +620,42 @@ const handleFileUploadComplete = (files, data) => {
 
   // Function to extract and populate certificate data from the evidence
   const extractAndPopulateTemplateData = () => {
-    if (!currentFile || !processedData || !processedData.evidence) {
+    if (!currentFile || !processedData) {
       alert('No document data available for extraction');
       return;
     }
 
+    console.log('Processing data for extraction:', processedData);
+
+    // Check if evidence data is available
+    if (!processedData.evidence) {
+      console.warn('No evidence data found in processed data');
+
+      // If API response has a different structure, try to identify evidence data
+      if (processedData.extracted_content || processedData.results || processedData.data) {
+        console.log('Found alternative evidence structure:',
+          processedData.extracted_content || processedData.results || processedData.data);
+
+        // Use whatever evidence-like data we can find
+        const evidenceData = processedData.extracted_content || processedData.results || processedData.data || {};
+        processedData.evidence = evidenceData;
+      } else {
+        alert('No evidence data found in the processed document. Using sample data for demonstration purposes.');
+
+        // Use mock data for demonstration
+        processedData.evidence = mockEvidenceData;
+      }
+    }
+
     // Get the type of document to ensure correct template mapping
     const docType = getTemplateType(currentFile);
+    console.log('Document type for extraction:', docType);
 
     // Process document data
     try {
+      // For debugging, show exactly what we're passing to the extraction function
+      console.log('Raw evidence data being processed:', processedData.evidence);
+
       // Extract structured data from OCR output
       const extractedData = extractDocumentData(processedData.evidence, docType);
       console.log('Extracted document data:', extractedData);
