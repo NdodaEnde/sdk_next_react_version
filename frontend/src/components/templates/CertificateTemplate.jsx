@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 export default function CertificateTemplate({ data }) {
   // Handle null or undefined data
@@ -14,15 +14,19 @@ export default function CertificateTemplate({ data }) {
     expiry_date = '',
     job = '',
 
-    // Examination type
+    // Examination type - check for both keys
+    examinationType = '',
     examination_type = '',
 
-    // Medical exams with defaults
+    // Medical exams with defaults - check for both naming conventions
+    medicalExams = {},
     medical_exams = {},
 
+    medicalResults = {},
     medical_results = {},
 
-    // Fitness declaration
+    // Fitness declaration - check for both naming conventions
+    fitnessDeclaration = '',
     fitness_declaration = '',
 
     // Restrictions with defaults
@@ -34,8 +38,24 @@ export default function CertificateTemplate({ data }) {
     comments = ''
   } = safeData;
 
+  // Merge medical exams from both naming conventions - use useMemo for performance
+  const combinedMedicalExams = useMemo(() => {
+    return {
+      ...medical_exams,
+      ...medicalExams
+    };
+  }, [medical_exams, medicalExams]);
+
+  // Merge medical results from both naming conventions
+  const combinedMedicalResults = useMemo(() => {
+    return {
+      ...medical_results,
+      ...medicalResults
+    };
+  }, [medical_results, medicalResults]);
+
   // Create safe objects with defaults for nested properties
-  const safeExams = {
+  const safeExams = useMemo(() => ({
     blood: false,
     vision: false,
     depthVision: false,
@@ -45,10 +65,18 @@ export default function CertificateTemplate({ data }) {
     lung: false,
     xray: false,
     drugScreen: false,
-    ...medical_exams
-  };
+    ...combinedMedicalExams
+  }), [combinedMedicalExams]);
 
-  const safeRestrictions = {
+  // Get restrictions from all possible sources (direct, nested, etc.)
+  const effectiveRestrictions = useMemo(() => {
+    return {
+      ...restrictions,
+      ...(safeData.checkboxes?.restrictions || {})  // Some extractors store restrictions under checkboxes
+    };
+  }, [restrictions, safeData.checkboxes]);
+
+  const safeRestrictions = useMemo(() => ({
     heights: false,
     dust: false,
     motorized: false,
@@ -57,45 +85,92 @@ export default function CertificateTemplate({ data }) {
     chemical: false,
     spectacles: false,
     treatment: false,
-    ...restrictions
+    chronicConditions: false,  // Add chronicConditions for compatibility
+    ...effectiveRestrictions
+  }), [effectiveRestrictions]);
+
+  // Map fitness declaration values to standardized format
+  const normalizeFitnessValue = (value) => {
+    const mapping = {
+      'fit': 'fit',
+      'fit_with_restriction': 'fitWithRestriction',
+      'fit_with_conditions': 'fitWithCondition',
+      'fit_with_condition': 'fitWithCondition',
+      'fitWithRestriction': 'fitWithRestriction',
+      'fitWithCondition': 'fitWithCondition',
+      'temporary_unfit': 'temporaryUnfit',
+      'temporaryUnfit': 'temporaryUnfit',
+      'unfit': 'unfit'
+    };
+    return mapping[value] || value;
   };
 
-  // Helper function to determine if a checkbox should be marked
+  // Helper function to determine if a checkbox should be marked - enhanced for better handling
   const isChecked = (value) => {
     if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
     if (typeof value === 'string') {
-      return value.toLowerCase() === 'true' || 
-             value.toLowerCase() === 'yes' || 
-             value.toLowerCase() === 'checked';
+      const lowerVal = value.toLowerCase();
+      return lowerVal === 'true' ||
+             lowerVal === 'yes' ||
+             lowerVal === 'checked' ||
+             lowerVal === '1' ||
+             lowerVal === 'x';
     }
     return false;
   };
 
-  // Helper function to determine active fitness declaration
+  // Helper function to determine active fitness declaration - check both naming conventions and normalize
   const isFitnessDeclared = (type) => {
-    return fitness_declaration === type;
+    return normalizeFitnessValue(fitness_declaration) === type ||
+           normalizeFitnessValue(fitnessDeclaration) === type;
+  };
+
+  // Determine examination type from either naming convention
+  const effectiveExaminationType = examination_type || examinationType || '';
+
+  // Helper to get medical result with fallbacks
+  const getMedicalResult = (fieldName) => {
+    return combinedMedicalResults[fieldName] ||
+           combinedMedicalResults[fieldName.toLowerCase()] ||
+           combinedMedicalResults[fieldName.replace(/([A-Z])/g, '_$1').toLowerCase()] ||
+           '';
+  };
+
+  // Format dates consistently
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return dateStr;
   };
 
   return (
     <div className="p-4 bg-white rounded-lg border border-gray-300 max-w-3xl mx-auto text-sm relative overflow-hidden">
       {/* Watermark */}
       <div className="absolute inset-0 flex items-center justify-center opacity-50 pointer-events-none z-0">
-        <img 
+        <img
           src="/images/templates/company_logos.png"
-          alt="Watermark" 
+          alt="Watermark"
           className="w-full max-w-[700px] h-auto"
+          onError={(e) => {
+            e.target.src = "/images/templates/default.png";
+            console.error("Failed to load watermark image");
+          }}
         />
-      </div> 
-      
+      </div>
+
       {/* All other content should have z-10 to appear above watermark */}
       <div className="relative z-10">
         {/* Header with logo and company info */}
         <div className="flex justify-between items-start">
           <div className="w-32 h-16">
-            <img 
-              src="/images/templates/company_logos.png" 
-              alt="Company Logo" 
-              className="ww-full h-full object-contain opacity-100"
+            <img
+              src="/images/templates/company_logos.png"
+              alt="Company Logo"
+              className="w-full h-full object-contain opacity-100"
+              onError={(e) => {
+                e.target.src = "/images/templates/default.png";
+                console.error("Failed to load company logo");
+              }}
             />
           </div>
           <div className="text-right">
@@ -134,29 +209,29 @@ export default function CertificateTemplate({ data }) {
               </div>
             </div>
           </div>
-          
+
           <div className="mb-2 flex items-center">
             <span className="font-semibold mr-2">Company Name:</span>
             <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${company ? 'bg-blue-50' : ''}`}>
               {company && <span className="px-1">{company}</span>}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 mb-2">
             <div className="flex items-center">
               <span className="font-semibold mr-2">Date of Examination:</span>
               <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${exam_date ? 'bg-blue-50' : ''}`}>
-                {exam_date && <span className="px-1">{exam_date}</span>}
+                {exam_date && <span className="px-1">{formatDate(exam_date)}</span>}
               </div>
             </div>
             <div className="flex items-center">
               <span className="font-semibold mr-2">Expiry Date:</span>
               <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${expiry_date ? 'bg-blue-50' : ''}`}>
-                {expiry_date && <span className="px-1">{expiry_date}</span>}
+                {expiry_date && <span className="px-1">{formatDate(expiry_date)}</span>}
               </div>
             </div>
           </div>
-          
+
           <div className="mb-2 flex items-center">
             <span className="font-semibold mr-2">Job Title:</span>
             <div className={`flex-1 border-b-2 border-gray-400 h-5 flex items-center ${job ? 'bg-blue-50' : ''}`}>
@@ -175,14 +250,14 @@ export default function CertificateTemplate({ data }) {
                 <td className="border-2 border-black px-2 py-0.5 text-center font-bold text-xs">EXIT</td>
               </tr>
               <tr>
-                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'pre-employment' ? 'bg-blue-100' : ''}`}>
-                  <div className="text-sm">{examination_type === 'pre-employment' ? '✓' : ''}</div>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${effectiveExaminationType === 'pre-employment' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{effectiveExaminationType === 'pre-employment' ? '✓' : ''}</div>
                 </td>
-                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'periodical' ? 'bg-blue-100' : ''}`}>
-                  <div className="text-sm">{examination_type === 'periodical' ? '✓' : ''}</div>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${effectiveExaminationType === 'periodical' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{effectiveExaminationType === 'periodical' ? '✓' : ''}</div>
                 </td>
-                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${examination_type === 'exit' ? 'bg-blue-100' : ''}`}>
-                  <div className="text-sm">{examination_type === 'exit' ? '✓' : ''}</div>
+                <td className={`border-2 border-black border-t-0 px-2 py-0.5 text-center ${effectiveExaminationType === 'exit' ? 'bg-blue-100' : ''}`}>
+                  <div className="text-sm">{effectiveExaminationType === 'exit' ? '✓' : ''}</div>
                 </td>
               </tr>
             </tbody>
@@ -211,7 +286,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.blood) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.blood || ''}
+                    {getMedicalResult('blood')}
                   </td>
                 </tr>
                 <tr>
@@ -220,7 +295,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.vision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.vision || ''}
+                    {getMedicalResult('vision')}
                   </td>
                 </tr>
                 <tr>
@@ -229,7 +304,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.depthVision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.depthVision || ''}
+                    {getMedicalResult('depthVision')}
                   </td>
                 </tr>
                 <tr>
@@ -238,13 +313,13 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.nightVision) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.nightVision || ''}
+                    {getMedicalResult('nightVision')}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          
+
           <div>
             <table className="w-full border-collapse text-xs">
               <thead>
@@ -261,7 +336,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.hearing) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.hearing || ''}
+                    {getMedicalResult('hearing')}
                   </td>
                 </tr>
                 <tr>
@@ -270,7 +345,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.heights) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.heights || ''}
+                    {getMedicalResult('heights')}
                   </td>
                 </tr>
                 <tr>
@@ -279,7 +354,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.lung) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.lung || ''}
+                    {getMedicalResult('lung')}
                   </td>
                 </tr>
                 <tr>
@@ -288,7 +363,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.xray) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.xray || ''}
+                    {getMedicalResult('xray')}
                   </td>
                 </tr>
                 <tr>
@@ -297,7 +372,7 @@ export default function CertificateTemplate({ data }) {
                     {isChecked(safeExams.drugScreen) ? '✓' : ''}
                   </td>
                   <td className="border border-gray-400 p-1">
-                    {medical_results.drugScreen || ''}
+                    {getMedicalResult('drugScreen')}
                   </td>
                 </tr>
               </tbody>
@@ -320,7 +395,7 @@ export default function CertificateTemplate({ data }) {
               <span className="font-semibold text-red-600">Review Date:</span>
             </div>
             <div className={`px-1 pb-1 ${review_date ? 'bg-blue-50' : ''}`}>
-              {review_date || ''}
+              {formatDate(review_date) || ''}
             </div>
           </div>
         </div>
@@ -356,8 +431,8 @@ export default function CertificateTemplate({ data }) {
               <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.spectacles) ? 'bg-blue-100' : ''}`}>
                 Wear Spectacles {isChecked(safeRestrictions.spectacles) ? '✓' : ''}
               </td>
-              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.treatment) ? 'bg-blue-100' : ''}`}>
-                Remain on Treatment for Chronic Conditions {isChecked(safeRestrictions.treatment) ? '✓' : ''}
+              <td className={`border border-gray-400 p-2 text-center ${isChecked(safeRestrictions.treatment || safeRestrictions.chronicConditions) ? 'bg-blue-100' : ''}`}>
+                Remain on Treatment for Chronic Conditions {isChecked(safeRestrictions.treatment || safeRestrictions.chronicConditions) ? '✓' : ''}
               </td>
             </tr>
           </tbody>
@@ -406,7 +481,7 @@ export default function CertificateTemplate({ data }) {
             <div className="border-b-2 border-gray-400 h-10"></div>
             <p className="font-semibold mt-1">SIGNATURE</p>
           </div>
-          
+
           {/* Document details in the middle */}
           <div className="text-center" style={{ fontSize: '10px' }}>
             <p className="font-semibold">Occupational Health Practitioner / Occupational Medical Practitioner</p>
@@ -415,7 +490,7 @@ export default function CertificateTemplate({ data }) {
             <p>SANC No: 14262133; SASOHN No: AR 2136 / MBCHB DOH</p>
             <p>Practice Number: 999 088 0000 8177 91</p>
           </div>
-          
+
           <div className="text-center">
             <div className="border-2 border-gray-400 h-10"></div>
             <p className="font-semibold mt-1">STAMP</p>
