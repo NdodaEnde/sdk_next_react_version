@@ -7,7 +7,7 @@ import ChatInterface from '../components/ChatInterface';
 import APIResponseViewer from '../components/APIResponseViewer';
 import EvidenceSummary from '../components/EvidenceSummary';
 import CertificateTemplate from '../components/templates/CertificateTemplate';
-import { extractDocumentData, mapToCertificateFields } from '../utils/dataExtractor';
+import { extractCertificateData, mapToCertificateFields } from '../utils/certificateExtractor';
 import { mockEvidenceData, sampleCertificateData } from '../utils/sampleData';
 
 export default function Documents() {
@@ -656,13 +656,9 @@ const handleFileUploadComplete = (files, data) => {
       // For debugging, show exactly what we're passing to the extraction function
       console.log('Raw evidence data being processed:', processedData.evidence);
 
-      // Extract structured data from OCR output
-      const extractedData = extractDocumentData(processedData.evidence, docType);
-      console.log('Extracted document data:', extractedData);
-
-      // Map the extracted data to certificate fields
-      const certificateData = mapToCertificateFields(extractedData);
-      console.log('Mapped certificate data:', certificateData);
+      // Extract structured data from OCR output using our new certificateExtractor
+      const certificateData = extractCertificateData(processedData, docType);
+      console.log('Extracted certificate data:', certificateData);
 
       // Update state with the template data
       setExtractedTemplateData(certificateData);
