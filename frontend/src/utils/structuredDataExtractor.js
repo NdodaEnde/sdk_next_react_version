@@ -829,6 +829,17 @@ function processMedicalTestsFromTables(tables, certificateData) {
  * @param {Object} certificateData - The certificate data to update
  */
 function extractMedicalTestsFromTable(table, testMapping, certificateData) {
+  // First check if this is the alternating row format where test names and checkboxes are in separate rows
+  // This is a common format in the medical certificates where each test has two rows:
+  // Row 1: Test name in a colspan cell
+  // Row 2: Done status in first cell, result in second cell
+  if (table.originalHtml && (table.originalHtml.includes("colspan") ||
+      (table.rows.length > 2 && table.rows.some(row => row.length === 1 &&
+       (row[0].includes('BLOODS') || row[0].includes('VISION') || row[0].includes('HEARING')))))) {
+    console.log('Detected alternating row format table for medical tests');
+    return extractMedicalTestsFromAlternatingTable(table, testMapping, certificateData);
+  }
+
   // If we have the original HTML, use it for more reliable checkbox detection
   if (table.originalHtml) {
     const originalHtml = table.originalHtml;
@@ -966,6 +977,133 @@ function extractMedicalTestsFromTable(table, testMapping, certificateData) {
       console.log(`Found medical test: ${testName} -> ${fieldName}, Done: ${isDone}, Result: ${result || 'N/A'}`);
     } else {
       console.log(`Could not determine field name for test: ${testName}`);
+    }
+  }
+}
+
+/**
+ * Extract medical tests from alternating row table format
+ * This handles tables where test names and values are in separate rows
+ * @param {Object} table - The table to extract from
+ * @param {Object} testMapping - The test name mapping
+ * @param {Object} certificateData - The certificate data to update
+ */
+function extractMedicalTestsFromAlternatingTable(table, testMapping, certificateData) {
+  const originalHtml = table.originalHtml || '';
+
+  // Get all table rows
+  const rowPattern = /<tr>([\s\S]*?)<\/tr>/g;
+  const rows = [];
+  let rowMatch;
+
+  while ((rowMatch = rowPattern.exec(originalHtml)) !== null) {
+    rows.push(rowMatch[1]);
+  }
+
+  // Variables to track test state
+  let currentTestName = '';
+  let currentFieldName = '';
+
+  // Process rows in pairs
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
+    // Check if this row contains a test name (often in a <strong> tag or in a colspan cell)
+    if (row.includes('<strong>') || row.includes('colspan')) {
+      // Extract test name
+      const testNameMatch = row.match(/<strong>(.*?)<\/strong>|<td colspan="2">(.*?)<\/td>/i);
+      if (testNameMatch) {
+        currentTestName = (testNameMatch[1] || testNameMatch[2] || '').trim();
+
+        // Map to our field name
+        currentFieldName = testMapping[currentTestName];
+
+        if (!currentFieldName) {
+          // Try to find a match in the test mapping
+          const matchingKey = Object.keys(testMapping).find(key =>
+            currentTestName.toLowerCase().includes(key.toLowerCase()) ||
+            key.toLowerCase().includes(currentTestName.toLowerCase()));
+
+          if (matchingKey) {
+            currentFieldName = testMapping[matchingKey];
+          } else {
+            // If no match, use a normalized version of the name
+            currentFieldName = currentTestName.toLowerCase().replace(/\s+/g, '_');
+          }
+        }
+
+        console.log(`Found test name: ${currentTestName} -> ${currentFieldName}`);
+
+        // The next row should contain the checkboxes and results
+        if (i + 1 < rows.length) {
+          const nextRow = rows[i + 1];
+          const cells = [];
+
+          // Extract all cells from next row
+          const cellPattern = /<td>([\s\S]*?)<\/td>/g;
+          let cellMatch;
+
+          while ((cellMatch = cellPattern.exec(nextRow)) !== null) {
+            cells.push(cellMatch[1].trim());
+          }
+
+          if (cells.length >= 1) {
+            // First cell is typically the checkbox/done status
+            const doneStatus = cells[0];
+            // Remove brackets from [x] for the display
+            const isDone = doneStatus.includes('[x]');
+
+            certificateData.medicalExams[currentFieldName] = isDone;
+
+            // Second cell may contain results
+            if (cells.length >= 2 && cells[1] && cells[1] !== 'N/A') {
+              certificateData.medicalResults[currentFieldName] = cells[1];
+            }
+
+            console.log(`Test ${currentTestName} -> Done: ${isDone}, Result: ${cells[1] || 'N/A'}`);
+          }
+
+          // Skip the next row as we've already processed it
+          i++;
+        }
+      }
+    }
+  }
+
+  // If we couldn't extract anything, fall back to the generic extraction
+  if (Object.keys(certificateData.medicalExams).length === 0) {
+    console.log('Alternating row extraction failed, trying generic table extraction');
+    return extractMedicalTestsFromGenericTable(table, testMapping, certificateData);
+  }
+}
+
+/**
+ * Fallback extraction for tables that didn't match our specific formats
+ * @param {Object} table - The table to extract from
+ * @param {Object} testMapping - The test name mapping
+ * @param {Object} certificateData - The certificate data to update
+ */
+function extractMedicalTestsFromGenericTable(table, testMapping, certificateData) {
+  // Try a more direct approach - just scan through all the rows
+  for (const row of table.rows) {
+    const rowStr = row.join(' ');
+
+    // For each test, check if the row mentions it
+    for (const [testName, fieldName] of Object.entries(testMapping)) {
+      if (rowStr.includes(testName)) {
+        // Check if the row contains a checkbox
+        const isDone = rowStr.includes('[x]') || rowStr.includes('✓');
+
+        certificateData.medicalExams[fieldName] = isDone;
+
+        // Try to find result - often after "Results:" or similar
+        const resultMatch = rowStr.match(/Results?:\s*([^,;\n]+)/i);
+        if (resultMatch && resultMatch[1] && resultMatch[1] !== 'N/A') {
+          certificateData.medicalResults[fieldName] = resultMatch[1].trim();
+        }
+
+        console.log(`Found test in row: ${testName} -> ${fieldName}, Done: ${isDone}`);
+      }
     }
   }
 }
@@ -1386,31 +1524,70 @@ function processRemainingFieldsFromFullMarkdown(markdown, certificateData) {
   // Check for missing fields
   const requiredFields = ['name', 'id_number', 'company', 'exam_date', 'expiry_date', 'job'];
   const missingFields = requiredFields.filter(field => !certificateData[field]);
-  
+
   if (missingFields.length > 0) {
     console.log(`Trying to find missing fields from full text: ${missingFields.join(', ')}`);
-    
+
     // Process each missing field with direct text search
     for (const field of missingFields) {
       const value = extractValueByKey(markdown, getKeyOptionsForField(field));
-      
+
       if (value) {
         certificateData[field] = value;
         console.log(`Found ${field} from direct text search: ${value}`);
       }
     }
   }
-  
+
   // Check for medical tests if we don't have enough
   if (Object.keys(certificateData.medicalExams).length < 4) {
     console.log('Trying to find medical tests from full text');
     extractMedicalTestsFromText(markdown, certificateData);
   }
-  
+
   // Check for fitness declaration if missing
   if (!certificateData.fitnessDeclaration) {
     console.log('Trying to find fitness declaration from full text');
     extractFitnessDeclarationFromText(markdown, certificateData);
+
+    // Check specifically for negation/crossed out in figure descriptions
+    const figurePattern = /## Figure Description[\s\S]*?(?=##|$)/gi;
+    let figureMatch;
+
+    while ((figureMatch = figurePattern.exec(markdown)) !== null) {
+      const figureContent = figureMatch[0];
+
+      if (figureContent.includes('FIT') &&
+          (figureContent.includes('crossed out') ||
+           figureContent.includes('X that spans') ||
+           figureContent.includes('negated') ||
+           figureContent.includes('X drawn over') ||
+           figureContent.includes('cancellation') ||
+           figureContent.includes('marked as incorrect'))) {
+        certificateData.fitnessDeclaration = 'unfit';
+        console.log('Found fitness declaration: unfit (from figure description)');
+        break;
+      }
+    }
+  }
+
+  // Check for restrictions if none were found
+  if (Object.keys(certificateData.restrictions).length === 0 ||
+      !Object.values(certificateData.restrictions).some(v => v === true)) {
+    console.log('No active restrictions found, ensuring all are set to false');
+
+    // Set all restrictions to false
+    certificateData.restrictions = {
+      heights: false,
+      dust: false,
+      motorized: false,
+      hearingProtection: false,
+      confinedSpaces: false,
+      chemical: false,
+      spectacles: false,
+      treatment: false,
+      chronicConditions: false
+    };
   }
 }
 

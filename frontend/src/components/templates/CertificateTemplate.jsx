@@ -107,9 +107,13 @@ export default function CertificateTemplate({ data }) {
 
   // Helper function to determine if a checkbox should be marked - enhanced for better handling
   const isChecked = (value) => {
+    if (value === undefined || value === null) return false;
     if (typeof value === 'boolean') return value;
     if (typeof value === 'number') return value === 1;
     if (typeof value === 'string') {
+      // Don't count "[x]" as checked - we want to display just the checkmark
+      if (value === '[x]') return false;
+
       const lowerVal = value.toLowerCase();
       return lowerVal === 'true' ||
              lowerVal === 'yes' ||
