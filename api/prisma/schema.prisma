@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  type      String
+  parentId  String?  @map("parent_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  parent           Organization?       @relation("OrganizationToOrganization", fields: [parentId], references: [id])
+  children         Organization[]      @relation("OrganizationToOrganization")
+  members          OrganizationUser[]
+  documents        Document[]
+  invitations      Invitation[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organizations    OrganizationUser[]
+  createdDocuments Document[]         @relation("DocumentCreator")
+  versionDocuments DocumentVersion[]  @relation("VersionCreator")
+
+  @@map("users")
+}
+
+model OrganizationUser {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  role           String       @default("member")
+  isPrimary      Boolean      @default(false) @map("is_primary")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime     @default(now()) @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@map("organization_users")
+}
+
+model Invitation {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  email          String
+  role           String       @default("member")
+  token          String       @unique
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz()
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime     @default(now()) @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+
+model Document {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  type           String
+  storagePath    String       @map("storage_path")
+  sizeBytes      BigInt       @map("size_bytes")
+  mimeType       String       @map("mime_type")
+  metadata       Json         @default("{}")
+  createdById    String?      @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime     @default(now()) @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User?           @relation("DocumentCreator", fields: [createdById], references: [id])
+  versions       DocumentVersion[]
+
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id             String       @id @default(uuid()) @db.Uuid
+  documentId     String       @map("document_id") @db.Uuid
+  versionNumber  Int          @map("version_number")
+  storagePath    String       @map("storage_path")
+  sizeBytes      BigInt       @map("size_bytes")
+  createdById    String?      @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy      User?        @relation("VersionCreator", fields: [createdById], references: [id])
+
+  @@unique([documentId, versionNumber])
+  @@map("document_versions")
+}

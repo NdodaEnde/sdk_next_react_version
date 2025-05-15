@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=medical_certificates
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-build
+    volumes:
+      - ./backend:/app/backend
+      - ./.env.production:/app/backend/.env.production
+    ports:
+      - "8003:8003"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_TYPE=postgres
+      - DATABASE_URL=postgresql://postgres:password@db:5432/medical_certificates
+      - PORT=8003
+      - NODE_ENV=production
+    command: python backend/start_production.py
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-build
+    volumes:
+      - ./frontend:/app
+      - ./frontend/.env.production:/app/.env.production
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next/cache
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8003
+      - NODE_ENV=production
+    command: npm start
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    restart: always
+
+volumes:
+  postgres_data:
+  node_modules:
+  next_cache:

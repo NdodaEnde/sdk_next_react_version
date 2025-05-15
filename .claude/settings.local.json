@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(mkdir:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(git branch:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(pnpm create:*)",
+      "Bash(touch:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(pkill:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(chmod:*)",
+      "Bash(npm run dev:*)",
+      "Bash(NODE_OPTIONS=--experimental-modules node test-evidence-extraction.js)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(kill:*)",
+      "Bash(cat:*)"
+    ],
+    "deny": []
+  }
+}

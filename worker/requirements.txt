@@ -1,0 +1,15 @@
+fastapi==0.105.0
+uvicorn==0.24.0
+pydantic==2.5.2
+python-dotenv==1.0.0
+httpx==0.25.2
+redis==5.0.1
+bull-py==0.6.0
+landingai==1.3.0
+pillow==10.1.0
+python-multipart==0.0.6
+boto3==1.34.19
+asyncio==3.4.3
+tenacity==8.2.3
+loguru==0.7.2
+pytest==7.4.3
